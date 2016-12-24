@@ -1,0 +1,65 @@
+//
+// This file implements ID3 for generating a decision tree
+//
+#include "decisiontree.h"
+#include <armadillo>
+
+// struct node {
+//     std::vector<node*> children;
+// }
+// typedef struct node Node;
+
+typedef struct node {
+    std::vector<node*> children;
+} Node;
+
+typedef struct data {
+    std::vector<int *> X;
+    int *y;
+} Data;
+
+//XXX: change to something like loadFromJSON()
+Data generateData() {
+    std::vector<int *> X;
+    int X1[] = {0, 0, 1};
+    int X2[] = c{0, 0, 1};
+    X.push_back(X1);
+    X.push_back(X2);
+    int y[] = {0, 1};
+    Data d;
+    d.X = X;
+    d.y = y;
+    return d;
+}
+
+class DecisionTree {
+public:
+    Node* root;
+    void fitWithID3(std::vector<data>, data);
+    data predict(data);
+};
+
+void DecisionTree::fitWithID3(std::vector<data> x, data y) {
+    // ID3(x, y, )
+}
+
+void ID3(std::vector<data> x, data y, int numFtrs, int numOutcomes, Node* root) {
+
+}
+
+float computeEntropy(data y, int numOutcomes) {
+
+}
+
+
+
+// keep entries of X where Xi[key] == value
+// XXX: switch to use std::copy_if
+std::vector<data> filter(std::vector<data> x, int key, int value) {
+    std::vector<data> v;
+    for (data f : v) {
+        if (f[key] == value)
+            v.push_back(f);
+    }
+    return v;
+}
