@@ -13,10 +13,9 @@ using namespace arma;
 
 // forward-declaration headers
 map<string, vector<string> > loadCSV(string fileName);
-void printCSV(map<string, vector<string> >);
-void labelEncodeData(map<string, vector<string> > dat);
+map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat);
 vector<string> uniqueElems(vector<string> v);
-int indexInVector(vector<int> v, int s);
+int indexInVector(vector<string> v, string s);
 
 // loads CSV data into a map from column_names -> [data] given a fileName
 map<string, vector<string> > loadCSV(string fileName) {
@@ -41,28 +40,22 @@ map<string, vector<string> > loadCSV(string fileName) {
     }
 
     return data;
-} 
-
-// prints a structure generated with loadCSV
-void printCSV(map<string, vector<string> > dat) {
-    for (auto m = dat.begin(); m != dat.end(); m++) {
-        string col = m->first;
-        vector<string> vals = m->second;
-        cout << col << " (" << vals.size() << "):\t";
-        for (auto v = vals.begin(); v != vals.end(); v++) {
-            cout << *v << ", ";
-        }
-        cout << endl;
-    }
 }
 
-// replaces all categorical entries with a corresponding list index 
-void labelEncodeData(map<string, vector<string> > dat) {
+// replaces all categorical entries with a corresponding list index
+map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat) {
+    map<string, vector<int> > encoded; 
     for (auto m = dat.begin(); m != dat.end(); m++)  {
         string key = m->first;
-        vector<string> ftrs = uniqueElems(m->second);
-
+        vector<string> vals = m->second;
+        vector<string> ftrs = uniqueElems(vals);
+        vector<int> encodedFtrs(vals.size());
+        for (int i = 0; i < vals.size(); i++) {
+            encodedFtrs[i] = indexInVector(ftrs, vals[i]);
+        }
+        encoded[key] = encodedFtrs;
     }
+    return encoded;
 }
 
 // generates a matrix from a data map. y is the key corresponding to the desired
@@ -75,7 +68,7 @@ void dataToMatrix(map<string, vector<string> > dat, string y) {
     // n: # of data samples, (dat[0].size())
     // X: mat(n, xzs)
     // Y: mat(n, 1)
-    // numelems = 
+    // numelems =
     // mat data = ()
 }
 
@@ -86,42 +79,48 @@ vector<string> uniqueElems(vector<string> v) {
     return vec;
 }
 
-int indexInVector(vector<int> v, int s) {
+int indexInVector(vector<string> v, string s) {
     int pos = find(v.begin(), v.end(), s) - v.begin();
+    if (pos >= v.size()) {
+        return -1;
+    }
     return pos;
 }
 
+template<class T>
+void printMap(map<string, vector<T> > dat) {
+    for (auto m = dat.begin(); m != dat.end(); m++) {
+        string col = m->first;
+        vector<T> vals = m->second;
+        cout << col << " (" << vals.size() << "):\t";
+        for (auto v = vals.begin(); v != vals.end(); v++) {
+            cout << *v << ", ";
+        }
+        cout << endl;
+    }
+}
+
 int main() {
-    // 0. Load features
-    /*
-        F1   F2   F3  =  Y
-        a    a    2      0
-        b    b    1      1
-    */
-
-    // 2. Aggregate the feature space for every feature
-    /*
-        F1: {a, b}
-        F2: {a, b}
-        F3: {1, 2}
-        Y: {0, 1}
-    */
-
-    // 3. Turn every entry into an index into its feature-space list
-    /*
-        F1   F2   F3  =  Y
-        0    0    1      0
-        1    1    0      1
-    */
-
-    // 4. ID3(X, Y, X{f->[k]}, Y[k])
-
     string trainFile = "data/test_data.csv";
+    cout << "Data:" << endl;
     map<string, vector<string> > dat = loadCSV(trainFile);
-    printCSV(dat);
+    printMap(dat);
+    cout << endl;
 
-    // test 
-    vector<int> v = {0, 1, 2, 3, 4};
-    cout << indexInVector(v, 3) << endl;
-
+    cout << "Labels:" << endl;
+    for (auto m = dat.begin(); m != dat.end(); m++)  {
+        string key = m->first;
+        vector<string> vals = m->second;
+        vector<string> ftrs = uniqueElems(vals);
+        cout << key << ": {";
+        for (int i = 0; i < ftrs.size(); i++) {
+            cout << ftrs[i] << ", ";
+        }
+        cout << "}" << endl;
+    }
+    cout << endl;
+    
+    cout << "Label-Encoded data:" << endl;
+    map<string, vector<int> > enc = labelEncodeData(dat);
+    printMap(enc);
 }
