@@ -6,7 +6,7 @@
 #include <vector>
 #include <armadillo>
 
-// #include "decisiontree.h"
+#include "decisiontree.h"
 
 using namespace std;
 using namespace arma;
@@ -62,14 +62,29 @@ map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat) {
 // predictions.
 // returns X, a matrix containing the features. y, a column vector containing
 // the desired predictions.
-void dataToMatrix(map<string, vector<string> > dat, string y) {
-    // xsz: # of features, length(dat.keys())
-    // ysz: # of outcomes, length(uniqueElems(dat[y]))
-    // n: # of data samples, (dat[0].size())
-    // X: mat(n, xzs)
-    // Y: mat(n, 1)
-    // numelems =
-    // mat data = ()
+void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Mat<int>& Y) {
+    // Ysz: outcome dimensionality
+    // Xsz: input dimensionality
+    // N: number of samples 
+    int Ysz = 1;    
+    int Xsz = dat.size() - Ysz;
+    int N = dat[y].size();
+
+    X.resize(N, Xsz);
+    Y.resize(N, Ysz);
+
+    int idx = 0;
+    for (auto m = dat.begin(); m != dat.end(); m++) { // each map value corresponds to a column of data
+        string key = m->first;
+        vector<int> vals = m->second;
+        if (y.compare(key)) {
+            Col<int> col(vals);
+            X.col(idx) = col;
+            idx++;
+        }
+    }
+    Col<int> col(dat[y]);
+    Y.col(0) = col;
 }
 
 /* Util Functions */
@@ -88,7 +103,7 @@ int indexInVector(vector<string> v, string s) {
 }
 
 template<class T>
-void printMap(map<string, vector<T> > dat) {
+void printVectorMap(map<string, vector<T> > dat) {
     for (auto m = dat.begin(); m != dat.end(); m++) {
         string col = m->first;
         vector<T> vals = m->second;
@@ -101,12 +116,14 @@ void printMap(map<string, vector<T> > dat) {
 }
 
 int main() {
+    // load training data
     string trainFile = "data/test_data.csv";
     cout << "Data:" << endl;
     map<string, vector<string> > dat = loadCSV(trainFile);
-    printMap(dat);
+    printVectorMap(dat);
     cout << endl;
 
+    // possible values for features
     cout << "Labels:" << endl;
     for (auto m = dat.begin(); m != dat.end(); m++)  {
         string key = m->first;
@@ -120,7 +137,21 @@ int main() {
     }
     cout << endl;
     
+    // label-encode samples
     cout << "Label-Encoded data:" << endl;
     map<string, vector<int> > enc = labelEncodeData(dat);
-    printMap(enc);
+    printVectorMap(enc);
+    cout << endl;
+    
+    // matricize data
+    Mat<int> X;
+    Mat<int> Y;
+    dataToMatrix(enc, "outcome", X, Y);
+    cout << "Data Matrices:" << endl;
+    cout << "X:" << endl;
+    X.print();
+    cout << endl;
+    cout << "Y:" << endl;
+    Y.print();
+    cout << endl;
 }
