@@ -9,7 +9,7 @@ STDFLAGS = "c++11"
 all: build
 
 build:
-	clang++ $(SRCDIR)/main.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) && \
+	clang++ $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g && \
 		ln -s `pwd`/$(SAVEDIR)/$(NAME) ~/Code/bin/$(NAME)
 
 clean:
