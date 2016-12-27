@@ -30,7 +30,7 @@ typedef struct node {
         if (n.children->size() == 0) {
             output << n.datum;
         } else {
-            output << "{f[" << n.ftrIdx << "]=" << n.target << "}" << endl;
+            output << "{f[" << n.ftrIdx << "]=" << n.target << "}";
         }
         return output;
     }

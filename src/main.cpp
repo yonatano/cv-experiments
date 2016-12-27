@@ -12,15 +12,16 @@
 using namespace std;
 using namespace arma;
 
+
 int main() {
     // load training data
     string trainFile = "data/test_data.csv";
-    cout << "Data:" << endl;
+    cout << "DATA:" << endl;
     map<string, vector<string> > dat = loadCSV(trainFile);
     printVectorMap(dat);
     cout << endl;
 
-    // possible values for features
+    // report value-spaces for features
     cout << "Labels:" << endl;
     for (auto m = dat.begin(); m != dat.end(); m++)  {
         string key = m->first;
@@ -33,31 +34,23 @@ int main() {
         cout << "}" << endl;
     }
     cout << endl;
-    
-    // label-encode samples
-    cout << "Label-Encoded data:" << endl;
-    map<string, vector<int> > enc = labelEncodeData(dat);
-    printVectorMap(enc);
-    cout << endl;
 
-    // matricize data
+    // label-encode samples
+    map<string, vector<int> > enc = labelEncodeData(dat);
+    
+    // data -> matrices
     Mat<int> X;
     Col<int> Y;
     dataToMatrix(enc, "outcome", X, Y);
-    cout << "Data Matrices:" << endl;
-    cout << "X:" << endl;
-    X.print();
-    cout << endl;
-    cout << "Y:" << endl;
-    Y.print();
-    cout << endl;
-    
-    X.rows(find( Y == 1 )).print();
 
-    // generate decision tree
+    // generate tree
     DecisionTree tree;
     tree.fitWithID3(X, Y);
-    // tree.print();
+    cout << "ID3 RESULT:" << endl;
+    tree.print();
+
+    // evaluate predictions
     Col<int> Yp = tree.predict(X);
-    Yp.print();
+    cout << "CONFUSION MATRIX:" << endl;
+    printConfusionMatrix(Y, Yp);
 }

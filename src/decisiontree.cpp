@@ -117,12 +117,19 @@ int evaluate(Row<int> X, Node* root) {
 void printTree(Node* root, string indent) {
     int rootsz = (root->children)->size();
     int halfidx = rootsz / 2;
-    for (int i = 0; i < halfidx; i++) {
-        printTree((*root->children)[i], indent+"\t\t");
-    }
-    cout << indent << *root << endl;
-    for (int i = halfidx; i < rootsz; i++) {
-        printTree((*root->children)[i], indent+"\t\t");
+    if (rootsz == 1) {
+        Node* chz = (*root->children)[0];
+        if (chz->isLeaf()) {
+            cout << indent << *root << " -- " << *chz << endl;
+        }
+    } else {
+        for (int i = 0; i < halfidx; i++) {
+        printTree((*root->children)[i], indent+"\t");
+        }
+        cout << indent << *root << endl;
+        for (int i = halfidx; i < rootsz; i++) {
+            printTree((*root->children)[i], indent+"\t");
+        }
     }
 }
 

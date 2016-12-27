@@ -81,3 +81,15 @@ void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Col<int>
     Col<int> col(dat[y]);
     Y = col;
 }
+
+void printConfusionMatrix(Col<int> Y, Col<int> Yp) {
+    Col<int> outcomes = unique(Y);
+    int matsz = outcomes.n_rows;
+    Mat<int> conf(matsz, matsz);
+    for (int i = 0; i < matsz; i++) {
+        for (int j = 0; j < matsz; j++) {
+            conf(i,j) = uvec(find( Y == i && Yp == j )).n_rows;
+        }
+    }
+    conf.print();
+}

@@ -16,6 +16,7 @@ vector<string> uniqueElems(vector<string> v);
 map<string, vector<string> > loadCSV(string fileName);
 map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat);
 void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Col<int>& Y);
+void printConfusionMatrix(Col<int> Y, Col<int> Yp);
 
 template<class T>
 inline
