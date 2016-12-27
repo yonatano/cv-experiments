@@ -3,9 +3,10 @@
 # brew install imagemagick
 
 EXT=ppm
+SRC=imgs
 DEST=imgs_$EXT
 mkdir -p $DEST;
-for fl in $(ls imgs/*.png)
+for fl in $(ls $SRC/*.png)
 do
     fn=$(basename ${fl%.*})
     convert $fl $DEST/$fn.$EXT 
