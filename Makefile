@@ -2,6 +2,8 @@ NAME := orb
 SRCDIR := src
 SAVEDIR := bin
 
+IMGMAGICKARGS=`Magick++-config --ldflags --libs`
+IMGMAGICKFLAGS=`Magick++-config --cxxflags --cppflags`
 STDFLAGS = "c++11"
 
 .PHONY: all clean
@@ -9,7 +11,7 @@ STDFLAGS = "c++11"
 all: build
 
 build:
-	clang++ $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g && \
+	clang++ $(IMGMAGICKFLAGS) $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g $(IMGMAGICKARGS) && \
 		ln -s `pwd`/$(SAVEDIR)/$(NAME) ~/Code/bin/$(NAME)
 
 clean:
