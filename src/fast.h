@@ -36,12 +36,20 @@ typedef struct point {
         return (this->x == rhs.x && this->y == rhs.y);
     }
 
+
+    friend ostream &operator<<( ostream &output, const point p) {
+        output << "(" << p.x << "," << p.y << ")";
+        return output;
+    }
+
 } Point;
 
 vector<Point> computeCircle(int cx, int cy, int r);
 vector<Point> computeCircleOfSize(int cx, int cy, int numPx);
-vector<Point> shiftPointCenter(vector<int> points, int cx, int cy);
+vector<Point> shiftPointCenter(vector<Point> points, int cx, int cy);
+int relativeBrightness(int magOne, int magTwo, int thresh);
+vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> circle, int thresh);
 bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, int n, int csz, int thresh);
-bool isCornerWithSegmentTestCriterion(Mat<int> img, vector<Point> circle, int cx, int cy, int n, int thresh);
+bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, vector<Point> circle, int n, int thresh);
 
 #endif

@@ -94,14 +94,22 @@ vector<Point> shiftPointCenter(vector<Point> points, int cx, int cy) {
     return points;
 }
 
-int relativeBrightness(int pxOne, int pxTwo, int thresh) {
-    if (pxOne > pxTwo + thresh)
+int relativeBrightness(int magOne, int magTwo, int thresh) {
+    if (magOne > magTwo + thresh)
         return REL_BRIGHTER;
-    if (pxOne < pxTwo - thresh)
+    if (magOne < magTwo - thresh)
         return REL_DARKER;
     return REL_EQUAL;
 }
 
+vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> circle, int thresh) {
+    vector<int> relBrightness;
+    for (int i = 0; i < circle.size(); i++) {
+        int rmag = img(circle[i].y, circle[i].x);
+        relBrightness[i] = relativeBrightness(cmag, rmag, thresh);
+    }
+    return relBrightness;
+}
 // computeSegmentTestCriterion() 
 // returns a bool indicating whether or not pixel at x,y of img 
 // is a corner by checking if there exist N contiguous pixels in a circle of R 
@@ -109,19 +117,19 @@ int relativeBrightness(int pxOne, int pxTwo, int thresh) {
 bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
                                       int n, int numPx, int thresh) {
     vector<Point> circle = computeCircleOfSize(cx, cy, numPx);
-    return isCornerWithSegmentTestCriterion(img, circle, cx, cy, n, thresh);
+    return isCornerWithSegmentTestCriterion(img, cx, cy, circle, n, thresh);
 }
 
 // overloaded method, allows for circle to be precomputed for faster processing
 // over many pixels for a fixed circle size.
-bool isCornerWithSegmentTestCriterion(Mat<int> img, vector<Point> circle, 
-                          int cx, int cy, int n, int thresh) {
-    int cmag = img(cx, cy);
+bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
+                                      vector<Point> circle, int n, int thresh) {
+    int cmag = img(cy, cx);
     if (circle.size() == 16 && n == 12) { // perform simpler negative test
-        int relup = relativeBrightness(cmag, img(circle[IDX_UP].x, circle[IDX_UP].y), thresh);
-        int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].x, circle[IDX_DOWN].y), thresh);
-        int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].x, circle[IDX_LEFT].y), thresh);
-        int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].x, circle[IDX_RIGHT].y), thresh);
+        int relup = relativeBrightness(cmag, img(circle[IDX_UP].y, circle[IDX_UP].x), thresh);
+        int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].y, circle[IDX_DOWN].x), thresh);
+        int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].y, circle[IDX_LEFT].x), thresh);
+        int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].y, circle[IDX_RIGHT].x), thresh);
         bool condOne    = (relup == relri == reldn) && relup != REL_EQUAL;
         bool condTwo    = (relri == reldn == rellf) && relri != REL_EQUAL;
         bool condThree  = (reldn == relri == relup) && reldn != REL_EQUAL;
@@ -131,12 +139,7 @@ bool isCornerWithSegmentTestCriterion(Mat<int> img, vector<Point> circle,
         }
     }
 
-    vector<int> relBrightness;
-    for (int i = 0; i < circle.size(); i++) {
-        int rmag = img(circle[i].x, circle[i].y);
-        relBrightness[i] = relativeBrightness(cmag, rmag, thresh);
-    }
-
+    vector<int> relBrightness = relativeBrightnessForCircle(img, cmag, circle, thresh);
     int streakLen = 0;
     int streakVal = 0;
     for (int i = 0; i < relBrightness.size(); i++) {
