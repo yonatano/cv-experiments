@@ -6,7 +6,8 @@ using namespace arma;
 
 /* Data handling */
 // loads CSV data into a map from column_names -> [data] given a fileName
-map<string, vector<string> > loadCSV(string fileName) {
+
+map<string, vector<string> > loadCSVAsString(string fileName) {
     map<string, vector<string> > data;
     ifstream file(fileName);
 
@@ -26,8 +27,22 @@ map<string, vector<string> > loadCSV(string fileName) {
             idx++;
         }
     }
-
     return data;
+}
+
+map<string, vector<int> > loadCSVAsInt(string fileName) {
+    map<string, vector<int> > datInt;
+    map<string, vector<string> > dat = loadCSVAsString(fileName);
+    for (auto m = dat.begin(); m != dat.end(); m++) {
+        string k = m->first;
+        vector<string> old = m->second;
+        vector<int> new_;
+        for (auto v = old.begin(); v != old.end(); v++) {
+            new_.push_back(stoi(*v));
+        } 
+        datInt[k] = new_;
+    }
+    return datInt;
 }
 
 // replaces all categorical entries with a corresponding list index

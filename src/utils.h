@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -13,7 +14,8 @@
 using namespace std;
 using namespace arma;
 
-map<string, vector<string> > loadCSV(string fileName);
+map<string, vector<string> > loadCSVAsString(string fileName);
+map<string, vector<int> > loadCSVAsInt(string fileName);
 map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat);
 void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Col<int>& Y);
 void printConfusionMatrix(Col<int> Y, Col<int> Yp);
@@ -48,6 +50,22 @@ void printVectorMap(map<string, vector<T> > dat) {
             cout << *v << ", ";
         }
         cout << endl;
+    }
+}
+
+template<class T>
+inline
+void splitTrainingData(map<string, vector<T> > data, 
+                       map<string, vector<T> >& train, 
+                       map<string, vector<T> >& test,
+                       int numSamples,
+                       float p) {
+    size_t const idx = int(p * numSamples);
+    for (auto m = data.begin(); m != data.end(); m++) {
+        string k = m->first;
+        vector<T> v = m->second;
+        train[k] = vector<T>(v.begin(), v.begin() + idx);
+        test[k] = vector<T>(v.begin() + idx, v.end());
     }
 }
 
