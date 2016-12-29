@@ -4,13 +4,6 @@
 using namespace std;
 using namespace arma;
 
-/* Util Functions */
-vector<string> uniqueElems(vector<string> v) {
-    set<string> s(v.begin(), v.end());
-    vector<string> vec(s.begin(), s.end());
-    return vec;
-}
-
 /* Data handling */
 // loads CSV data into a map from column_names -> [data] given a fileName
 map<string, vector<string> > loadCSV(string fileName) {
@@ -92,4 +85,8 @@ void printConfusionMatrix(Col<int> Y, Col<int> Yp) {
         }
     }
     conf.print();
+}
+
+bool isInBounds(int w, int h, int x, int y) {
+    return (0 <= x < w) && (0 <= y < h);
 }

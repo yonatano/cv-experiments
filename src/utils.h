@@ -6,17 +6,26 @@
 #include <string>
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <vector>
 #include <armadillo>
 
 using namespace std;
 using namespace arma;
 
-vector<string> uniqueElems(vector<string> v);
 map<string, vector<string> > loadCSV(string fileName);
 map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat);
 void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Col<int>& Y);
 void printConfusionMatrix(Col<int> Y, Col<int> Yp);
+bool isInBounds(int w, int h, int x, int y);
+
+template<class T>
+inline
+vector<T> uniqueElems(vector<T> v) {
+    set<T> s(v.begin(), v.end());
+    vector<T> vec(s.begin(), s.end());
+    return vec;
+}
 
 template<class T>
 inline

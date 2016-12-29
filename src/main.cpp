@@ -5,15 +5,21 @@
 #include <set>
 #include <vector>
 #include <armadillo>
+#include <Magick++.h>
 
+#include "fast.h"
 #include "decisiontree.h"
 #include "utils.h"
 
 using namespace std;
 using namespace arma;
+using namespace Magick;
 
+void displayCube(Cube<int> im) {
 
-int main() {
+}
+
+void testID3() {
     // load training data
     string trainFile = "data/test_data.csv";
     cout << "DATA:" << endl;
@@ -53,4 +59,25 @@ int main() {
     Col<int> Yp = tree.predict(X);
     cout << "CONFUSION MATRIX:" << endl;
     printConfusionMatrix(Y, Yp);
+}
+
+int main(int argc, char **argv) {
+    InitializeMagick(*argv);
+
+    string fileName = "data/imgs_ppm/blue-bottle-coffee.ppm";
+    if (argc > 1) {
+        fileName = argv[1];
+        cout << "loading image: " << fileName << endl;
+    }    
+    Cube<int> img;
+    img.load(fileName, ppm_binary);
+    displayCube(img);
+
+    int numPx = 16;
+    vector<Point> circle = computeCircleOfSize(10, 10, numPx);
+    for (auto v = circle.begin(); v != circle.end(); v++) {
+        Point p = *v;
+        cout << "(" << p.x << ", " << p.y << ")" << ", ";  
+    }
+    cout << circle.size() << " points" << endl;
 }
