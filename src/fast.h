@@ -9,10 +9,10 @@
 using namespace std;
 using namespace arma;
 
-const int IDX_UP    = 0;
-const int IDX_DOWN  = 8;
-const int IDX_RIGHT = 4;
-const int IDX_LEFT  = 12;
+const int IDX_UP    = 4;
+const int IDX_DOWN  = 12;
+const int IDX_RIGHT = 0;
+const int IDX_LEFT  = 8;
 
 const int DEFAULT_MAG_THRESHOLD = 0;
 const int DEFAULT_PX_COUNT_REQ  = 12;

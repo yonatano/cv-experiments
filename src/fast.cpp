@@ -31,29 +31,30 @@ vector<point> computeCircle(int cx, int cy, int r) {
         return circle;
     }
 
+    // aggregate the points in each octant and combine them so they're ordered
+    // contiguously.
+    map<int, function<Point(int, int)> > octantFn = {
+        { 0, [](int x, int y) { return Point(x, y); } },
+        { 1, [](int x, int y) { return Point(y, x); } },
+        { 2, [](int x, int y) { return Point(-y, x); } },
+        { 3, [](int x, int y) { return Point(-x, y); } },
+        { 4, [](int x, int y) { return Point(-x, -y); } },
+        { 5, [](int x, int y) { return Point(-y, -x); } },
+        { 6, [](int x, int y) { return Point(y, -x); } },
+        { 7, [](int x, int y) { return Point(x, -y); } },
+    };
+    map<int, vector<Point> > octants;
+
     int x = r;
     int y = 0;
     int err = 0;
     while (x >= y) {
-
-        // reflections to all octants
-        for (int i = -1; i <= 1; i += 2) {
-            for (int j = -1; j <= 1; j += 2) {
-                Point p(cx + i * x, cy + j * y);
-                if (indexInVector(circle, p) == -1) {
-                    circle.push_back(p);
-                }
+        for (int o = 0; o < 8; o++) {
+            Point p = (octantFn[o])(x, y);
+            if (indexInVector(octants[o], p) == -1) {
+                octants[o].push_back(p);
             }
         }
-        for (int i = -1; i <= 1; i += 2) {
-            for (int j = -1; j <= 1; j += 2) {
-                Point p(cx + i * y, cy + j * x);
-                if (indexInVector(circle, p) == -1) {
-                    circle.push_back(p);
-                }
-            }
-        }
-
         // adjust parameters to generate the remaining points in the octant
         if (err <= 0) {
             y += 1;
@@ -62,6 +63,13 @@ vector<point> computeCircle(int cx, int cy, int r) {
         if (err > 0) {
             x -= 1;
             err -= 2 * x + 1;
+        }
+    }
+
+    // points ordered counter-clockwise starting from (r, 0)
+    for (int o = 0; o < 8; o++) {
+        for (auto v = octants[o].begin(); v != octants[o].end(); v++) {
+            circle.push_back(*v);
         }
     }
 
@@ -106,7 +114,7 @@ vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> ci
     vector<int> relBrightness;
     for (int i = 0; i < circle.size(); i++) {
         int rmag = img(circle[i].y, circle[i].x);
-        relBrightness[i] = relativeBrightness(cmag, rmag, thresh);
+        relBrightness.push_back( relativeBrightness(cmag, rmag, thresh) );
     }
     return relBrightness;
 }
@@ -125,21 +133,24 @@ bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy,
 bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
                                       vector<Point> circle, int n, int thresh) {
     int cmag = img(cy, cx);
-    if (circle.size() == 16 && n == 12) { // perform simpler negative test
-        int relup = relativeBrightness(cmag, img(circle[IDX_UP].y, circle[IDX_UP].x), thresh);
-        int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].y, circle[IDX_DOWN].x), thresh);
-        int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].y, circle[IDX_LEFT].x), thresh);
-        int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].y, circle[IDX_RIGHT].x), thresh);
-        bool condOne    = (relup == relri == reldn) && relup != REL_EQUAL;
-        bool condTwo    = (relri == reldn == rellf) && relri != REL_EQUAL;
-        bool condThree  = (reldn == relri == relup) && reldn != REL_EQUAL;
-        bool condFour   = (rellf == relup == relri) && rellf != REL_EQUAL;
-        if (!condOne && !condTwo && !condThree && !condFour) { // rule out the possibility of N contiguous like pixels
-            return false;
-        }
-    }
+    // if (circle.size() == DEFAULT_CIRCLESZ && n == DEFAULT_PX_COUNT_REQ) { // perform simpler negative test
+    //     int relup = relativeBrightness(cmag, img(circle[IDX_UP].y, circle[IDX_UP].x), thresh);
+    //     int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].y, circle[IDX_DOWN].x), thresh);
+    //     int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].y, circle[IDX_LEFT].x), thresh);
+    //     int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].y, circle[IDX_RIGHT].x), thresh);
+    //     bool condOne    = (relup == relri == reldn) && relup != REL_EQUAL;
+    //     bool condTwo    = (relri == reldn == rellf) && relri != REL_EQUAL;
+    //     bool condThree  = (reldn == relri == relup) && reldn != REL_EQUAL;
+    //     bool condFour   = (rellf == relup == relri) && rellf != REL_EQUAL;
+    //     if (!condOne && !condTwo && !condThree && !condFour) { // rule out the possibility of N contiguous like pixels
+    //         return false;
+    //     }
+    // }
 
     vector<int> relBrightness = relativeBrightnessForCircle(img, cmag, circle, thresh);
+    vector<int> cp(relBrightness);
+    relBrightness.insert(relBrightness.end(), cp.begin(), cp.end()); // for wrap-around check
+    
     int streakLen = 0;
     int streakVal = 0;
     for (int i = 0; i < relBrightness.size(); i++) {
@@ -152,7 +163,7 @@ bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy,
             }
         }
         streakVal = reli;
-        if (streakVal >= n)
+        if (streakLen >= n)
             return true;
     }
     return false;

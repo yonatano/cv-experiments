@@ -64,20 +64,61 @@ void testID3() {
 int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
-    string fileName = "data/imgs_ppm/blue-bottle-coffee.ppm";
+    string fileName = "data/imgs_pgm/blue-bottle-coffee.pgm";
     if (argc > 1) {
         fileName = argv[1];
         cout << "loading image: " << fileName << endl;
-    }    
-    Cube<int> img;
-    img.load(fileName, ppm_binary);
-    displayCube(img);
-
-    int numPx = 16;
-    vector<Point> circle = computeCircleOfSize(10, 10, numPx);
-    for (auto v = circle.begin(); v != circle.end(); v++) {
-        Point p = *v;
-        cout << "(" << p.x << ", " << p.y << ")" << ", ";  
     }
-    cout << circle.size() << " points" << endl;
+    Mat<int> img;
+    img.load(fileName, pgm_binary);
+    cout << "loaded image: (" << fileName << ") " << img.n_rows << "x" << img.n_cols << endl;
+
+    // generate training data for corner detector
+    stringstream trainingData;
+    for (int i = 0; i < DEFAULT_CIRCLESZ; i++) { // write csv header
+        trainingData << "R" << i << ',';
+    }
+    trainingData << "Y" << '\n';
+
+    int npos;
+    int nneg;
+
+    vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
+    int startx = 4; // radius size of 16px circle
+    int starty = 4;
+    int endx = (img.n_cols - 1) - 4;
+    int endy = (img.n_rows - 1) - 4;
+
+    for (int cy = starty; cy <= endy; cy++) {
+        for (int cx = startx; cx <= endx; cx++) {
+            int cmag = img(cy, cx);
+            vector<int> relBrightness = relativeBrightnessForCircle(img, 
+                                                                    cmag, 
+                                                                    shiftPointCenter(circle, cx, cy), 
+                                                                    DEFAULT_MAG_THRESHOLD);
+            bool isCorner = isCornerWithSegmentTestCriterion(img, 
+                                                             cx, 
+                                                             cy, 
+                                                             shiftPointCenter(circle, cx, cy),
+                                                             DEFAULT_PX_COUNT_REQ,
+                                                             DEFAULT_MAG_THRESHOLD);
+            if (isCorner) {
+                npos++;
+            } else {
+                nneg++;
+            }
+
+            for (auto v = relBrightness.begin(); v != relBrightness.end(); v++) {
+                trainingData << *v << ',';
+            }
+            trainingData << isCorner;
+            trainingData << '\n';
+        }
+    }
+
+    ofstream outFile;
+    outFile.open("train.csv");
+    outFile << trainingData.str();
+
+    cout << "POS: " << npos << " NEG: " << nneg << endl;
 }
