@@ -33,6 +33,10 @@ void DecisionTree::print() {
     printTree(this->root, "");
 }
 
+void DecisionTree::dump(stringstream& stream) {
+    dumpTree(this->root, "", stream);
+}
+
 void ID3(Mat<int> X, Col<int> Y, Node* root, string tabs, int maxDepth, vector<int> usedFtrs) {
 
     if (maxDepth == 0) {
@@ -117,20 +121,26 @@ int evaluate(Row<int> X, Node* root) {
 void printTree(Node* root, string indent) {
     int rootsz = (root->children)->size();
     int halfidx = rootsz / 2;
-    if (rootsz == 1) {
-        Node* chz = (*root->children)[0];
-        if (chz->isLeaf()) {
-            cout << indent << *root << " -- " << *chz << endl;
-        }
-    } else {
-        for (int i = 0; i < halfidx; i++) {
+    for (int i = 0; i < halfidx; i++) {
         printTree((*root->children)[i], indent+"\t");
-        }
-        cout << indent << *root << endl;
-        for (int i = halfidx; i < rootsz; i++) {
-            printTree((*root->children)[i], indent+"\t");
-        }
     }
+    cout << indent << *root << endl;
+    for (int i = halfidx; i < rootsz; i++) {
+        printTree((*root->children)[i], indent+"\t");
+    }
+}
+
+void dumpTree(Node* root, string indent, stringstream& stream) {
+    int rootsz = (root->children)->size();
+    if (root->isLeaf()) {
+        stream << indent << "return " << root->datum << ";" << endl;
+    } else {
+        stream << indent << "if (X[" << root->ftrIdx << "] == " << root->target << ") {" << endl;
+    }
+    for (int i = 0; i < rootsz; i++) {
+        dumpTree((*root->children)[i], indent+" ", stream);
+    }
+    stream << indent << "}" << endl;
 }
 
 double computeEntropy(Col<int> X, Col<int> possValues) {

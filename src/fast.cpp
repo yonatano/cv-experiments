@@ -102,15 +102,15 @@ vector<Point> shiftPointCenter(vector<Point> points, int cx, int cy) {
     return points;
 }
 
-int relativeBrightness(int magOne, int magTwo, int thresh) {
-    if (magOne > magTwo + thresh)
+int relativeBrightness(int center, int relative, float thresh) {
+    if (relative > center * (1 + thresh))
         return REL_BRIGHTER;
-    if (magOne < magTwo - thresh)
+    if (relative < center * (1 - thresh))
         return REL_DARKER;
     return REL_EQUAL;
 }
 
-vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> circle, int thresh) {
+vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> circle, float thresh) {
     vector<int> relBrightness;
     for (int i = 0; i < circle.size(); i++) {
         int rmag = img(circle[i].y, circle[i].x);
@@ -123,7 +123,7 @@ vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> ci
 // is a corner by checking if there exist N contiguous pixels in a circle of R 
 // that are all brighter or darker by some threshold T,
 bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
-                                      int n, int numPx, int thresh) {
+                                      int n, int numPx, float thresh) {
     vector<Point> circle = computeCircleOfSize(cx, cy, numPx);
     return isCornerWithSegmentTestCriterion(img, cx, cy, circle, n, thresh);
 }
@@ -131,26 +131,26 @@ bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy,
 // overloaded method, allows for circle to be precomputed for faster processing
 // over many pixels for a fixed circle size.
 bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
-                                      vector<Point> circle, int n, int thresh) {
+                                      vector<Point> circle, int n, float thresh) {
     int cmag = img(cy, cx);
-    // if (circle.size() == DEFAULT_CIRCLESZ && n == DEFAULT_PX_COUNT_REQ) { // perform simpler negative test
-    //     int relup = relativeBrightness(cmag, img(circle[IDX_UP].y, circle[IDX_UP].x), thresh);
-    //     int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].y, circle[IDX_DOWN].x), thresh);
-    //     int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].y, circle[IDX_LEFT].x), thresh);
-    //     int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].y, circle[IDX_RIGHT].x), thresh);
-    //     bool condOne    = (relup == relri == reldn) && relup != REL_EQUAL;
-    //     bool condTwo    = (relri == reldn == rellf) && relri != REL_EQUAL;
-    //     bool condThree  = (reldn == relri == relup) && reldn != REL_EQUAL;
-    //     bool condFour   = (rellf == relup == relri) && rellf != REL_EQUAL;
-    //     if (!condOne && !condTwo && !condThree && !condFour) { // rule out the possibility of N contiguous like pixels
-    //         return false;
-    //     }
-    // }
+    if (circle.size() == DEFAULT_CIRCLESZ && n == DEFAULT_PX_COUNT_REQ) { // perform simpler negative test
+        int relup = relativeBrightness(cmag, img(circle[IDX_UP].y, circle[IDX_UP].x), thresh);
+        int reldn = relativeBrightness(cmag, img(circle[IDX_DOWN].y, circle[IDX_DOWN].x), thresh);
+        int rellf = relativeBrightness(cmag, img(circle[IDX_LEFT].y, circle[IDX_LEFT].x), thresh);
+        int relri = relativeBrightness(cmag, img(circle[IDX_RIGHT].y, circle[IDX_RIGHT].x), thresh);
+        bool condOne    = (relup == relri == reldn) && relup != REL_EQUAL;
+        bool condTwo    = (relri == reldn == rellf) && relri != REL_EQUAL;
+        bool condThree  = (reldn == relri == relup) && reldn != REL_EQUAL;
+        bool condFour   = (rellf == relup == relri) && rellf != REL_EQUAL;
+        if (!condOne && !condTwo && !condThree && !condFour) { // rule out the possibility of N contiguous like pixels
+            return false;
+        }
+    }
 
     vector<int> relBrightness = relativeBrightnessForCircle(img, cmag, circle, thresh);
     vector<int> cp(relBrightness);
     relBrightness.insert(relBrightness.end(), cp.begin(), cp.end()); // for wrap-around check
-    
+
     int streakLen = 0;
     int streakVal = 0;
     for (int i = 0; i < relBrightness.size(); i++) {

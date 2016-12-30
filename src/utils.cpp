@@ -19,7 +19,15 @@ map<string, vector<string> > loadCSVAsString(string fileName) {
     for (string c; getline(colss, c, ',');) {
         columns.push_back(c);
     }
+    int step = 1000000;
+    int lineNum = 0;
     for (string line; getline(file, line, '\n');) {
+        ++lineNum;
+        if (lineNum >= step){
+            cout << "read 1M lines" << endl;
+            step += 1000000;
+        }
+
         stringstream ss(line);
         int idx = 0;
         for (string entry; getline(ss, entry, ',');) {
@@ -94,11 +102,14 @@ void printConfusionMatrix(Col<int> Y, Col<int> Yp) {
     Col<int> outcomes = unique(Y);
     int matsz = outcomes.n_rows;
     Mat<int> conf(matsz, matsz);
-    for (int i = 0; i < matsz; i++) {
-        for (int j = 0; j < matsz; j++) {
-            conf(i,j) = uvec(find( Y == i && Yp == j )).n_rows;
-        }
+    conf.ones();
+
+    for (int i = 0; i < Y.n_rows; i++) {
+        int a = Y[i];
+        int b = Yp[i];
+        conf(a, b) += 1;
     }
+
     conf.print();
 }
 

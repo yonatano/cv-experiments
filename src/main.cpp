@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <dirent.h>
 #include <armadillo>
 #include <Magick++.h>
 
@@ -20,54 +21,68 @@ void displayCube(Cube<int> im) {
 }
 
 void generateTrainingData() {
-    string fileName = "data/imgs_pgm/blue-bottle-coffee.pgm";
-    Mat<int> img;
-    img.load(fileName, pgm_binary);
-    cout << "loaded image: (" << fileName << ") " << img.n_rows << "x" << img.n_cols << endl;
+    vector<string> images;
+    const char* dir = "data/tiny_imagenet_pgm/";
+    DIR* dirData = opendir(dir);
+    struct dirent* f;
+    while (( f = readdir( dirData )) != NULL ) {
+        string fname(f->d_name);
+        if (fname.find(".pgm") != string::npos) {
+            images.push_back(string(dir) + fname);
+        }
+    }
+    cout << "read " << images.size() << " images" << endl;
+    cout << "processing..." << endl;
 
-    // generate training data for corner detector
     stringstream trainingData;
     for (int i = 0; i < DEFAULT_CIRCLESZ; i++) { // write csv header
         trainingData << "R" << i << ',';
     }
     trainingData << "Y" << '\n';
 
-    int npos = 0;
-    int nneg = 0;
-
     vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
-    int startx = 4; // radius size of 16px circle
-    int starty = 4;
-    int endx = (img.n_cols - 1) - 4;
-    int endy = (img.n_rows - 1) - 4;
 
-    for (int cy = starty; cy <= endy; cy++) {
-        for (int cx = startx; cx <= endx; cx++) {
-            int cmag = img(cy, cx);
-            vector<int> relBrightness = relativeBrightnessForCircle(img, 
-                                                                    cmag, 
-                                                                    shiftPointCenter(circle, cx, cy), 
-                                                                    DEFAULT_MAG_THRESHOLD);
-            bool isCorner = isCornerWithSegmentTestCriterion(img, 
-                                                             cx, 
-                                                             cy, 
-                                                             shiftPointCenter(circle, cx, cy),
-                                                             DEFAULT_PX_COUNT_REQ,
-                                                             DEFAULT_MAG_THRESHOLD);
-            if (isCorner) {
-                npos++;
-            } else {
-                nneg++;
-            }
+    int step = 100;
+    int idx = 0;
+    for (auto f = images.begin(); f != images.end(); f++) {
+        ++idx;
+        
+        if (idx >= step) {
+            step += 100;
+            cout << idx << "/" << images.size() << endl;
+        }
 
-            for (auto v = relBrightness.begin(); v != relBrightness.end(); v++) {
-                trainingData << *v << ',';
+        string fileName = *f;
+        Mat<int> img;
+        img.load(fileName, pgm_binary);
+
+        int startx = 4; // radius size of 16px circle
+        int starty = 4;
+        int endx = (img.n_cols - 1) - 4;
+        int endy = (img.n_rows - 1) - 4;
+
+        for (int cy = starty; cy <= endy; cy++) {
+            for (int cx = startx; cx <= endx; cx++) {
+                int cmag = img(cy, cx);
+                vector<int> relBrightness = relativeBrightnessForCircle(img, 
+                                                                        cmag, 
+                                                                        shiftPointCenter(circle, cx, cy), 
+                                                                        DEFAULT_MAG_THRESHOLD);
+                bool isCorner = isCornerWithSegmentTestCriterion(img, 
+                                                                 cx, 
+                                                                 cy, 
+                                                                 shiftPointCenter(circle, cx, cy),
+                                                                 DEFAULT_PX_COUNT_REQ,
+                                                                 DEFAULT_MAG_THRESHOLD);
+
+                for (auto v = relBrightness.begin(); v != relBrightness.end(); v++) {
+                    trainingData << *v << ',';
+                }
+                trainingData << isCorner;
+                trainingData << '\n';
             }
-            trainingData << isCorner;
-            trainingData << '\n';
         }
     }
-    cout << "POS: " << npos << " NEG: " << nneg << endl;
 
     ofstream outFile;
     outFile.open("train.csv");
@@ -77,7 +92,7 @@ void generateTrainingData() {
 
 void testID3() {
     // load training data
-    string trainFile = "data/test_data.csv";
+    string trainFile = "data/id3/test_data.csv";
     cout << "DATA:" << endl;
     map<string, vector<string> > dat = loadCSVAsString(trainFile);
     printVectorMap(dat);
@@ -163,4 +178,12 @@ int main(int argc, char **argv) {
         Ybad(i) = round(Yrand(i) * 1);
     }
     printConfusionMatrix(Ytest, Ybad);
+    cout << endl;
+
+    stringstream treeDump;
+    tree.dump(treeDump);
+    ofstream treeFile;
+    treeFile.open("tree-dump.txt");
+    treeFile << treeDump.str();
+    treeFile.close();
 }
