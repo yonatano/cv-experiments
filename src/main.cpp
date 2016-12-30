@@ -20,7 +20,7 @@ void displayCube(Cube<int> im) {
 
 }
 
-void generateTrainingData() {
+vector<string> loadImageNet() {
     vector<string> images;
     const char* dir = "data/tiny_imagenet_pgm/";
     DIR* dirData = opendir(dir);
@@ -32,113 +32,81 @@ void generateTrainingData() {
         }
     }
     cout << "read " << images.size() << " images" << endl;
-    cout << "processing..." << endl;
+    return images;
+}
 
-    stringstream trainingData;
-    for (int i = 0; i < DEFAULT_CIRCLESZ; i++) { // write csv header
-        trainingData << "R" << i << ',';
+void computeKeypointDataForImage(Mat<int> img, 
+                                 vector<Point> circle, 
+                                 vector<vector<int> >& relBrightnessVec, 
+                                 vector<bool>& isCornerVec) {
+    int startx = 4; // radius size of 16px circle
+    int starty = 4;
+    int endx = (img.n_cols - 1) - 4;
+    int endy = (img.n_rows - 1) - 4;
+
+    for (int cy = starty; cy <= endy; cy++) {
+        for (int cx = startx; cx <= endx; cx++) {
+            int cmag = img(cy, cx);
+            vector<int> relBrightness = relativeBrightnessForCircle(img, 
+                                                        cmag, 
+                                                        shiftPointCenter(circle, cx, cy), 
+                                                        DEFAULT_MAG_THRESHOLD);
+            bool isCorner = isCornerWithSegmentTestCriterion(img, 
+                                                        cx, 
+                                                        cy, 
+                                                        shiftPointCenter(circle, cx, cy),
+                                                        DEFAULT_PX_COUNT_REQ,
+                                                        DEFAULT_MAG_THRESHOLD);
+            relBrightnessVec.push_back(relBrightness);
+            isCornerVec.push_back(isCorner);
+        }
     }
-    trainingData << "Y" << '\n';
+}
+
+void generateTrainingData(vector<string> imageFiles, string outName) {
+    stringstream outData;
+
+    for (int i = 0; i < DEFAULT_CIRCLESZ; i++) { // write csv header
+        outData << "R" << i << ',';
+    }
+    outData << "Y" << '\n';
 
     vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
 
-    int step = 100;
-    int idx = 0;
-    for (auto f = images.begin(); f != images.end(); f++) {
-        ++idx;
-        
-        if (idx >= step) {
-            step += 100;
-            cout << idx << "/" << images.size() << endl;
-        }
-
-        string fileName = *f;
+    // perform segment test over all pixels in each image
+    for (auto f = imageFiles.begin(); f != imageFiles.end(); f++) { 
         Mat<int> img;
-        img.load(fileName, pgm_binary);
-
-        int startx = 4; // radius size of 16px circle
-        int starty = 4;
-        int endx = (img.n_cols - 1) - 4;
-        int endy = (img.n_rows - 1) - 4;
-
-        for (int cy = starty; cy <= endy; cy++) {
-            for (int cx = startx; cx <= endx; cx++) {
-                int cmag = img(cy, cx);
-                vector<int> relBrightness = relativeBrightnessForCircle(img, 
-                                                                        cmag, 
-                                                                        shiftPointCenter(circle, cx, cy), 
-                                                                        DEFAULT_MAG_THRESHOLD);
-                bool isCorner = isCornerWithSegmentTestCriterion(img, 
-                                                                 cx, 
-                                                                 cy, 
-                                                                 shiftPointCenter(circle, cx, cy),
-                                                                 DEFAULT_PX_COUNT_REQ,
-                                                                 DEFAULT_MAG_THRESHOLD);
-
-                for (auto v = relBrightness.begin(); v != relBrightness.end(); v++) {
-                    trainingData << *v << ',';
-                }
-                trainingData << isCorner;
-                trainingData << '\n';
+        vector<vector<int> > relBrightnessVec;
+        vector<bool> isCornerVec;
+        img.load(*f, pgm_binary);
+        computeKeypointDataForImage(img,
+                                    circle,
+                                    relBrightnessVec,
+                                    isCornerVec);
+        for (int i = 0; i < isCornerVec.size(); i++) {
+            for (auto rel = relBrightnessVec[i].begin(); 
+                rel != relBrightnessVec[i].end(); rel++) {
+                outData << *rel << ',';
             }
+            outData << isCornerVec[i] << '\n';
         }
     }
-
     ofstream outFile;
-    outFile.open("train.csv");
-    outFile << trainingData.str();
+    outFile.open(outName);
+    outFile << outData.str();
     outFile.close();
-}
-
-void testID3() {
-    // load training data
-    string trainFile = "data/id3/test_data.csv";
-    cout << "DATA:" << endl;
-    map<string, vector<string> > dat = loadCSVAsString(trainFile);
-    printVectorMap(dat);
-    cout << endl;
-
-    // report value-spaces for features
-    cout << "Labels:" << endl;
-    for (auto m = dat.begin(); m != dat.end(); m++)  {
-        string key = m->first;
-        vector<string> vals = m->second;
-        vector<string> ftrs = uniqueElems(vals);
-        cout << key << ": {";
-        for (int i = 0; i < ftrs.size(); i++) {
-            cout << ftrs[i] << ", ";
-        }
-        cout << "}" << endl;
-    }
-    cout << endl;
-
-    // label-encode samples
-    map<string, vector<int> > enc = labelEncodeData(dat);
-    
-    // data -> matrices
-    Mat<int> X;
-    Col<int> Y;
-    dataToMatrix(enc, "outcome", X, Y);
-
-    // generate tree
-    DecisionTree tree;
-    tree.fitWithID3(X, Y);
-    cout << "ID3 RESULT:" << endl;
-    tree.print();
-
-    // evaluate predictions
-    Col<int> Yp = tree.predict(X);
-    cout << "CONFUSION MATRIX:" << endl;
-    printConfusionMatrix(Y, Yp);
 }
 
 int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
     // generate training data
-    // cout << "generating training data..." << endl;
-    // generateTrainingData();
+    cout << "loading ImageNet..." << endl;
+    vector<string> images = loadImageNet();
+    cout << "generating training data..." << endl;
+    generateTrainingData(images, "train.csv");
 
+    cout << "loading training data..." << endl;
     map<string, vector<int> > data = loadCSVAsInt("train.csv");
     map<string, vector<int> > train;
     map<string, vector<int> > test;
