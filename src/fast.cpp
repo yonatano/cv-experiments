@@ -1,19 +1,3 @@
-/*
-fast.cpp:
-extractCircle
-    - midpoint circle algorithm (Bresenham circle)
-segmentTestCriterion(img, x, y, n, thresh)
-    - optimization for n > 12 -- consider pixels 1,5,9,13
-extractCorners(img, n, thresh) -- have DEFAULTS for these
-
-main.cpp / util.cpp: 
-loadImg
-generateTrainingData -- loop over images and generate data, etc
-something like:
-    fastDetector = DecisionTree(data)
-
-*/
-
 #include "fast.h"
 #include "utils.h"
 

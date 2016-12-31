@@ -11,39 +11,66 @@
 #include "fast.h"
 #include "decisiontree.h"
 #include "utils.h"
+#include "detect.h"
 
 using namespace std;
 using namespace arma;
 using namespace Magick;
 
-void displayCube(Cube<int> im) {
+void displayImageWithKeypoints(string fileName, vector<Point> keyPoints) {
 
 }
 
-vector<string> loadImageNet() {
+vector<string> loadImageNet(int num) {
     vector<string> images;
     const char* dir = "data/tiny_imagenet_pgm/";
     DIR* dirData = opendir(dir);
     struct dirent* f;
     while (( f = readdir( dirData )) != NULL ) {
+        if (num == 0)
+            break;
         string fname(f->d_name);
         if (fname.find(".pgm") != string::npos) {
             images.push_back(string(dir) + fname);
+            num--;
         }
     }
     cout << "read " << images.size() << " images" << endl;
     return images;
 }
 
-void computeKeypointDataForImage(Mat<int> img, 
-                                 vector<Point> circle, 
-                                 vector<vector<int> >& relBrightnessVec, 
-                                 vector<bool>& isCornerVec) {
+vector<Point> detectKeypointsForImage(Mat<int> img, DecisionTree& tree) {
+    vector<Point> keypoints;
+    vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
+    int startx = 4;
+    int starty = 4;
+    int endx = (img.n_cols - 1) - 4;
+    int endy = (img.n_rows - 1) - 4;
+    for (int cy = starty; cy <= endy; cy++) {
+        for (int cx = startx; cx <= endx; cx++) {
+            int cmag = img(cy, cx);
+            vector<int> relBrightness = relativeBrightnessForCircle(img, 
+                                                        cmag, 
+                                                        shiftPointCenter(circle, cx, cy), 
+                                                        DEFAULT_MAG_THRESHOLD);
+            Row<int> X(relBrightness);
+            bool isCorner = isKeypoint( X );
+            if (isCorner) {
+                keypoints.push_back( Point(cx, cy) );
+            }
+        }
+    }
+    return keypoints;
+}
+
+void computeKeypointTrainingDataForImage(Mat<int> img,
+                                         vector<Point> circle,
+                                         vector<vector<int> >& relBrightnessVec,
+                                         vector<bool>& isCornerVec) {
     int startx = 4; // radius size of 16px circle
     int starty = 4;
     int endx = (img.n_cols - 1) - 4;
     int endy = (img.n_rows - 1) - 4;
-
     for (int cy = starty; cy <= endy; cy++) {
         for (int cx = startx; cx <= endx; cx++) {
             int cmag = img(cy, cx);
@@ -79,10 +106,10 @@ void generateTrainingData(vector<string> imageFiles, string outName) {
         vector<vector<int> > relBrightnessVec;
         vector<bool> isCornerVec;
         img.load(*f, pgm_binary);
-        computeKeypointDataForImage(img,
-                                    circle,
-                                    relBrightnessVec,
-                                    isCornerVec);
+        computeKeypointTrainingDataForImage(img,
+                                            circle,
+                                            relBrightnessVec,
+                                            isCornerVec);
         for (int i = 0; i < isCornerVec.size(); i++) {
             for (auto rel = relBrightnessVec[i].begin(); 
                 rel != relBrightnessVec[i].end(); rel++) {
@@ -101,10 +128,10 @@ int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
     // generate training data
-    cout << "loading ImageNet..." << endl;
-    vector<string> images = loadImageNet();
-    cout << "generating training data..." << endl;
-    generateTrainingData(images, "train.csv");
+    // cout << "loading ImageNet..." << endl;
+    // vector<string> images = loadImageNet(100);
+    // cout << "generating training data..." << endl;
+    // generateTrainingData(images, "train.csv");
 
     cout << "loading training data..." << endl;
     map<string, vector<int> > data = loadCSVAsInt("train.csv");
@@ -138,20 +165,35 @@ int main(int argc, char **argv) {
     cout << endl;
 
     // sanity-check
-    cout << "sanity-check... using X ~ Unif(0, 1) for each prediction:" << endl;
-    Col<int> Ybad(Yp.n_rows, 1);
-    Col<float> Yrand(Yp.n_rows, 1);
-    Yrand.randu();
-    for (int i = 0; i < Yrand.n_rows; i++) {
-        Ybad(i) = round(Yrand(i) * 1);
-    }
-    printConfusionMatrix(Ytest, Ybad);
-    cout << endl;
+    // cout << "sanity-check... using X ~ Unif(0, 1) for each prediction:" << endl;
+    // Col<int> Ybad(Yp.n_rows, 1);
+    // Col<float> Yrand(Yp.n_rows, 1);
+    // Yrand.randu();
+    // for (int i = 0; i < Yrand.n_rows; i++) {
+    //     Ybad(i) = round(Yrand(i) * 1);
+    // }
+    // printConfusionMatrix(Ytest, Ybad);
+    // cout << endl;
 
-    stringstream treeDump;
-    tree.dump(treeDump);
-    ofstream treeFile;
-    treeFile.open("tree-dump.txt");
-    treeFile << treeDump.str();
-    treeFile.close();
+    // stringstream treeDump;
+    // tree.dumpConditionals(treeDump);
+    // ofstream treeFile;
+    // treeFile.open("tree-dump.txt");
+    // treeFile << treeDump.str();
+    // treeFile.close();
+
+    string testpng = "data/test-imgs/apple-store.png";
+    string testpgm = "data/test-imgs/apple-store.pgm";
+
+    Mat<int> img; // load image into matrix 
+    img.load(testpgm, pgm_binary);
+    vector<Point> keypoints = detectKeypointsForImage(img, tree);
+    cout << "detected " << keypoints.size() << " keypoints." << endl;
+
+    Image image;
+    image.read(testpng);
+    for (auto p = keypoints.begin(); p != keypoints.end(); p++) {
+        image.pixelColor((*p).x, (*p).y, "green");
+    }
+    image.write("data/test-imgs/apple-store-keypoints.png");
 }

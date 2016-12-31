@@ -33,7 +33,15 @@ void DecisionTree::print() {
     printTree(this->root, "");
 }
 
-void DecisionTree::dump(stringstream& stream) {
+void DecisionTree::save(ofstream& filestream) {
+    saveTree(this->root, "", filestream);
+}
+
+void DecisionTree::load(ofstream& filestream) {
+    loadTree(this->root, filestream);
+}
+
+void DecisionTree::dumpConditionals(stringstream& stream) {
     dumpTree(this->root, "", stream);
 }
 
@@ -130,17 +138,26 @@ void printTree(Node* root, string indent) {
     }
 }
 
+void saveTree(Node* root, string indent, ofstream& stream) {
+    int rootsz = (root->children)->size();
+
+}
+
+void loadTree(Node* root, ofstream& stream) {
+
+}
+
 void dumpTree(Node* root, string indent, stringstream& stream) {
     int rootsz = (root->children)->size();
     if (root->isLeaf()) {
         stream << indent << "return " << root->datum << ";" << endl;
     } else {
         stream << indent << "if (X[" << root->ftrIdx << "] == " << root->target << ") {" << endl;
+        for (int i = 0; i < rootsz; i++) {
+            dumpTree((*root->children)[i], indent+" ", stream);
+        }
+        stream << indent << "}" << endl;
     }
-    for (int i = 0; i < rootsz; i++) {
-        dumpTree((*root->children)[i], indent+" ", stream);
-    }
-    stream << indent << "}" << endl;
 }
 
 double computeEntropy(Col<int> X, Col<int> possValues) {

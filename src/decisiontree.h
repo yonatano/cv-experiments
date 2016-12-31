@@ -2,6 +2,7 @@
 #define DECISIONTREE_H
 
 #include <iostream>
+#include <fstream>
 #include <armadillo>
 
 using namespace std;
@@ -43,7 +44,9 @@ public:
     int predict(Row<int> X);
     Col<int> predict(Mat<int> X);
     void print();
-    void dump(stringstream& stream);
+    void save(ofstream& filestream);
+    void load(ofstream& filestream);
+    void dumpConditionals(stringstream& stream);
     DecisionTree();
 };
 
@@ -51,6 +54,8 @@ void ID3(Mat<int> X, Col<int> Y, Node* root, string tabs, int maxDepth, vector<i
 double computeEntropy(Col<int> X, Col<int> possValues);
 bool is_zero(double X);
 void printTree(Node* root, string indent);
+void saveTree(Node* root, string indent, ofstream& stream);
+void loadTree(Node* root, ofstream& stream);
 void dumpTree(Node* root, string indent, stringstream& stream);
 int evaluate(Row<int> X, Node* root);
 
