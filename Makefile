@@ -6,7 +6,7 @@ IMGMAGICKARGS=`Magick++-config --ldflags --libs`
 IMGMAGICKFLAGS=`Magick++-config --cxxflags --cppflags`
 STDFLAGS = "c++11"
 
-.PHONY: all clean
+.PHONY: all build clean new
 
 all: build
 
