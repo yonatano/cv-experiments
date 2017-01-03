@@ -18,4 +18,8 @@ clean:
 		@- $(RM) ~/Code/bin/$(NAME)
 	    @- $(RM) $(SAVEDIR)/$(NAME)
 
+fast:
+	clang++ $(IMGMAGICKFLAGS) $(SRCDIR)/*.cpp -Ofast -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g $(IMGMAGICKARGS) && \
+		ln -s `pwd`/$(SAVEDIR)/$(NAME) ~/Code/bin/$(NAME) 
+
 new: clean build

@@ -14,6 +14,6 @@
 using namespace std;
 using namespace arma;
 
-bool isKeypoint(Row<int> X);
+bool isKeypoint(Row<int>& X);
 
 #endif

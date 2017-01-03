@@ -47,23 +47,24 @@ vector<string> loadImageNet(int num) {
     return images;
 }
 
-vector<Point> detectKeypointsForImage(Mat<int> img) {
+vector<Point> detectKeypointsForImage(Mat<int>& img, int skip) {
     vector<Point> keypoints;
     vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
     int startx = 4;
     int starty = 4;
     int endx = (img.n_cols - 1) - 4;
     int endy = (img.n_rows - 1) - 4;
-    for (int cy = starty; cy <= endy; cy++) {
-        for (int cx = startx; cx <= endx; cx++) {
+    cout << "X: " << startx << " -> " << endx << endl;
+    cout << "Y: " << starty << " -> " << endy << endl;
+    for (int cy = starty; cy <= endy; cy += skip) {
+        for (int cx = startx; cx <= endx; cx += skip) {
             int cmag = img(cy, cx);
             vector<int> relBrightness = relativeBrightnessForCircle(img, 
-                                                        cmag, 
-                                                        shiftPointCenter(circle, cx, cy), 
-                                                        DEFAULT_MAG_THRESHOLD);
+                                                                    cmag, 
+                                                                    shiftPointCenter(circle, cx, cy), 
+                                                                    DEFAULT_MAG_THRESHOLD);
             Row<int> X(relBrightness);
-            bool isCorner = isKeypoint( X );
-            if (isCorner) {
+            if (isKeypoint(X)) {
                 keypoints.push_back( Point(cx, cy) );
             }
         }
@@ -135,6 +136,8 @@ void generateTrainingData(vector<string> imageFiles, string outName) {
 int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
+    /*
+
     // generate training data
     cout << "loading ImageNet..." << endl;
     vector<string> images = loadImageNet(100);
@@ -179,15 +182,19 @@ int main(int argc, char **argv) {
     // treeFile << treeDump.str();
     // treeFile.close();
 
-    string testpng = "data/test-imgs/apple-store.png";
-    string testpgm = "data/test-imgs/apple-store.pgm";
+    */
+    string selfdir = "/Users/yonatanoren/Code/c++/projects/computervision/orb/";
+
+    string testpng = selfdir+"data/test-imgs/skiing_large.png";
+    string testpgm = selfdir+"data/test-imgs/skiing_large.pgm";
 
     Mat<int> img; // load image into matrix 
     img.load(testpgm, pgm_binary);
     cout << "loaded image: " << testpng << endl;
-    vector<Point> keypoints = detectKeypointsForImage(img);
+    vector<Point> keypoints = detectKeypointsForImage(img, 5);
     cout << "detected " << keypoints.size() << " keypoints." << endl;
 
     saveImageWithKeypoints(testpng, keypoints);
+
 
 }

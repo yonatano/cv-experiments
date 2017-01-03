@@ -2,7 +2,7 @@
 
 using namespace arma;
 
-bool isKeypoint(Row<int> X) {
+bool isKeypoint(Row<int>& X) {
     if (X[0] == 0) {
       return 0;
      }

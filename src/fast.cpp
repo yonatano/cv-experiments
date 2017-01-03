@@ -94,7 +94,7 @@ int relativeBrightness(int center, int relative, float thresh) {
     return REL_EQUAL;
 }
 
-vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> circle, float thresh) {
+vector<int> relativeBrightnessForCircle(Mat<int>& img, int cmag, vector<Point> circle, float thresh) {
     vector<int> relBrightness;
     for (int i = 0; i < circle.size(); i++) {
         int rmag = img(circle[i].y, circle[i].x);
@@ -106,7 +106,7 @@ vector<int> relativeBrightnessForCircle(Mat<int> img, int cmag, vector<Point> ci
 // returns a bool indicating whether or not pixel at x,y of img 
 // is a corner by checking if there exist N contiguous pixels in a circle of R 
 // that are all brighter or darker by some threshold T,
-bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
+bool isCornerWithSegmentTestCriterion(Mat<int>& img, int cx, int cy, 
                                       int n, int numPx, float thresh) {
     vector<Point> circle = computeCircleOfSize(cx, cy, numPx);
     return isCornerWithSegmentTestCriterion(img, cx, cy, circle, n, thresh);
@@ -114,7 +114,7 @@ bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy,
 
 // overloaded method, allows for circle to be precomputed for faster processing
 // over many pixels for a fixed circle size.
-bool isCornerWithSegmentTestCriterion(Mat<int> img, int cx, int cy, 
+bool isCornerWithSegmentTestCriterion(Mat<int>& img, int cx, int cy, 
                                       vector<Point> circle, int n, float thresh) {
     int cmag = img(cy, cx);
     if (circle.size() == DEFAULT_CIRCLESZ && n == DEFAULT_PX_COUNT_REQ) { // perform simpler negative test
