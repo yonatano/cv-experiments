@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <time.h>
 #include <dirent.h>
 #include <armadillo>
 #include <Magick++.h>
@@ -12,13 +13,20 @@
 #include "decisiontree.h"
 #include "utils.h"
 #include "detect.h"
+#include "distributions.h"
 
 using namespace std;
 using namespace arma;
 using namespace Magick;
 
-void displayImageWithKeypoints(string fileName, vector<Point> keyPoints) {
-
+void saveImageWithKeypoints(string fileName, vector<Point> keypoints) {
+    string saveName = fileName + ".keypoints.png";
+    Image image;
+    image.read(fileName);
+    for (auto p = keypoints.begin(); p != keypoints.end(); p++) {
+        image.pixelColor((*p).x, (*p).y, "green");
+    }
+    image.write(saveName);
 }
 
 vector<string> loadImageNet(int num) {
@@ -39,7 +47,7 @@ vector<string> loadImageNet(int num) {
     return images;
 }
 
-vector<Point> detectKeypointsForImage(Mat<int> img, DecisionTree& tree) {
+vector<Point> detectKeypointsForImage(Mat<int> img) {
     vector<Point> keypoints;
     vector<Point> circle = computeCircleOfSize(0, 0, DEFAULT_CIRCLESZ);
     int startx = 4;
@@ -128,10 +136,10 @@ int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
     // generate training data
-    // cout << "loading ImageNet..." << endl;
-    // vector<string> images = loadImageNet(100);
-    // cout << "generating training data..." << endl;
-    // generateTrainingData(images, "train.csv");
+    cout << "loading ImageNet..." << endl;
+    vector<string> images = loadImageNet(100);
+    cout << "generating training data..." << endl;
+    generateTrainingData(images, "train.csv");
 
     cout << "loading training data..." << endl;
     map<string, vector<int> > data = loadCSVAsInt("train.csv");
@@ -164,17 +172,6 @@ int main(int argc, char **argv) {
     printConfusionMatrix(Ytest, Yp);
     cout << endl;
 
-    // sanity-check
-    // cout << "sanity-check... using X ~ Unif(0, 1) for each prediction:" << endl;
-    // Col<int> Ybad(Yp.n_rows, 1);
-    // Col<float> Yrand(Yp.n_rows, 1);
-    // Yrand.randu();
-    // for (int i = 0; i < Yrand.n_rows; i++) {
-    //     Ybad(i) = round(Yrand(i) * 1);
-    // }
-    // printConfusionMatrix(Ytest, Ybad);
-    // cout << endl;
-
     // stringstream treeDump;
     // tree.dumpConditionals(treeDump);
     // ofstream treeFile;
@@ -187,13 +184,10 @@ int main(int argc, char **argv) {
 
     Mat<int> img; // load image into matrix 
     img.load(testpgm, pgm_binary);
-    vector<Point> keypoints = detectKeypointsForImage(img, tree);
+    cout << "loaded image: " << testpng << endl;
+    vector<Point> keypoints = detectKeypointsForImage(img);
     cout << "detected " << keypoints.size() << " keypoints." << endl;
 
-    Image image;
-    image.read(testpng);
-    for (auto p = keypoints.begin(); p != keypoints.end(); p++) {
-        image.pixelColor((*p).x, (*p).y, "green");
-    }
-    image.write("data/test-imgs/apple-store-keypoints.png");
+    saveImageWithKeypoints(testpng, keypoints);
+
 }
