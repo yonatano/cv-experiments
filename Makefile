@@ -8,7 +8,7 @@ STDFLAGS = "c++11"
 
 .PHONY: all build clean new
 
-all: build
+all: new
 
 build:
 	clang++ $(IMGMAGICKFLAGS) $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g $(IMGMAGICKARGS) && \
