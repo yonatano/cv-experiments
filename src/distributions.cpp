@@ -33,7 +33,7 @@ float stdNormalDensity(float x) {
 }
 
 // U ~ Unif(0, 1)
-float sampleStdUniform() {
+float sampleStdUniformDist() {
     float r = static_cast <float> (rng());
     float max = static_cast <float> (rng.max());
     float min = static_cast <float> (rng.min());
@@ -45,7 +45,7 @@ float sampleStdUniform() {
 // form uniform.
 // X = - 1/λ * ln(U)
 float sampleExponentialDist(float l) {
-    float u = sampleStdUniform();
+    float u = sampleStdUniformDist();
     return -1/l * log(u);
 }
 
@@ -58,7 +58,7 @@ float sampleStdNormalDist() {
     float c = 1.0 / pow(2 * M_PI, 0.5) * exp(0.5);
     while (true) {
         float y = sampleExponentialDist(1);
-        float u = sampleStdUniform();
+        float u = sampleStdUniformDist();
         float fcg = stdExponentialDensity(y) / (c * stdNormalDensity(y));
         if (u <= fcg) {
             return y;
