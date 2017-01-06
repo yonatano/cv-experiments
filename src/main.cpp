@@ -14,19 +14,24 @@
 #include "utils.h"
 #include "detect.h"
 #include "distributions.h"
+#include "brief.h"
 
 using namespace std;
 using namespace arma;
 using namespace Magick;
 
-void saveImageWithKeypoints(string fileName, vector<Point> keypoints) {
-    string saveName = fileName + ".keypoints.png";
-    Image image;
-    image.read(fileName);
+void drawKeypoints(Image& image, vector<Point> keypoints, string color) {
     for (auto p = keypoints.begin(); p != keypoints.end(); p++) {
-        image.pixelColor((*p).x, (*p).y, "green");
+        image.pixelColor((*p).x, (*p).y, color);
     }
-    image.write(saveName);
+}
+
+void drawPatch(Image& image, Patch p, string id) {
+    image.draw( DrawableLine(p.startx, p.starty, p.endx, p.starty) );
+    image.draw( DrawableLine(p.startx, p.starty, p.startx, p.endy) );
+    image.draw( DrawableLine(p.startx, p.endy, p.endx, p.endy) );
+    image.draw( DrawableLine(p.endx, p.starty, p.endx, p.endy) );
+    image.draw( DrawableText(p.startx + 10, p.starty + 10, id) );
 }
 
 vector<string> loadImageNet(int num) {
@@ -137,7 +142,6 @@ int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
     /*
-
     // generate training data
     cout << "loading ImageNet..." << endl;
     vector<string> images = loadImageNet(100);
@@ -181,20 +185,65 @@ int main(int argc, char **argv) {
     // treeFile.open("tree-dump.txt");
     // treeFile << treeDump.str();
     // treeFile.close();
-
     */
+
     string selfdir = "/Users/yonatanoren/Code/c++/projects/computervision/orb/";
+    string testpng = selfdir+"data/test-imgs/apple-store.png";
+    string testpgm = selfdir+"data/test-imgs/apple-store.pgm";
 
-    string testpng = selfdir+"data/test-imgs/skiing_large.png";
-    string testpgm = selfdir+"data/test-imgs/skiing_large.pgm";
+    Image image;
+    image.read(testpng);
+    image.strokeWidth(1);
 
-    Mat<int> img; // load image into matrix 
+    // load image into matrix 
+    Mat<int> img; 
     img.load(testpgm, pgm_binary);
-    cout << "loaded image: " << testpng << endl;
-    vector<Point> keypoints = detectKeypointsForImage(img, 5);
+
+    // detect interest points
+    int skip = 1;
+    vector<Point> keypoints = detectKeypointsForImage(img, skip);
     cout << "detected " << keypoints.size() << " keypoints." << endl;
 
-    saveImageWithKeypoints(testpng, keypoints);
+    // draw interest points
+    drawKeypoints(image, keypoints, "green");
 
+    // generate a descriptor for a patch
+    int patchsz = 25;
+    Patch p1(img, Point(50, 50), patchsz);
+    Patch p2(img, Point(200, 200), patchsz);
+    Patch p3(img, Point(201, 200), patchsz);
+    
+    // use the same local coordinates for each descriptor
+    int descsz = 512;
+    Point pt1;
+    Point pt2;
+    vector<Point> pairs;
+    for (int i = 0; i < descsz; i++) {    
+        sampleWithGaussianStrategy(img, p1, pt1, pt2);
+        pairs.push_back( p1.tolocal(pt1) );
+        pairs.push_back( p1.tolocal(pt2) );
+    }
 
+    vector<Point> descriptorPts;
+    
+    uint64_t d1 = generateBRIEFDescriptor(img, p1, descsz, pairs, descriptorPts);
+    image.strokeColor("blue");
+    drawPatch(image, p1, "1");
+    drawKeypoints(image, descriptorPts, "red");
+
+    uint64_t d2 = generateBRIEFDescriptor(img, p2, descsz, pairs, descriptorPts);
+    image.strokeColor("blue");
+    drawPatch(image, p2, "2");
+    drawKeypoints(image, descriptorPts, "red");
+
+    uint64_t d3 = generateBRIEFDescriptor(img, p3, descsz, pairs, descriptorPts);
+    image.strokeColor("blue");
+    drawPatch(image, p3, "3");
+    drawKeypoints(image, descriptorPts, "red");
+
+    cout << "patch 1 & patch 2 dist: " << (d1^d2) << endl;
+    cout << "patch 1 & patch 3 dist: " << (d1^d3) << endl;
+    cout << "patch 2 & patch 3 dist: " << (d2^d3) << endl;
+
+    image.write(testpng + ".keypoints.png");
 }
