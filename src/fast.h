@@ -27,6 +27,11 @@ typedef struct point {
     int x;
     int y;
 
+    point() {
+        this->x = 0;
+        this->y = 0;
+    }
+
     point(int x, int y) {
         this->x = x;
         this->y = y;

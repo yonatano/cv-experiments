@@ -5,8 +5,8 @@ using namespace std;
 using namespace arma;
 
 /* Data handling */
-// loads CSV data into a map from column_names -> [data] given a fileName
 
+// loads CSV data into a map from column_names -> [data] given a fileName
 map<string, vector<string> > loadCSVAsString(string fileName) {
     map<string, vector<string> > data;
     ifstream file(fileName);
@@ -115,4 +115,15 @@ void printConfusionMatrix(Col<int> Y, Col<int> Yp) {
 
 bool isInBounds(int w, int h, int x, int y) {
     return (0 <= x < w) && (0 <= y < h);
+}
+
+/* Image functions */
+void smoothImageWithGaussian(Mat<int>& img) {
+    // XXX: implement function to generate gaussian kernel
+    // for now use weights for Sigma=2, window size 9x9
+    mat k({0.319466, 0.361069, 0.319466});
+    mat f = conv_to<mat>::from(img);
+    f = conv2(f, k, "same");
+    f = conv2(f, k.t(), "same");
+    img = conv_to< Mat<int> >::from( f ); // convert to, from 2D convolution
 }

@@ -61,7 +61,11 @@ float sampleStdNormalDist() {
         float u = sampleStdUniformDist();
         float fcg = stdExponentialDensity(y) / (c * stdNormalDensity(y));
         if (u <= fcg) {
-            return y;
+            if (sampleStdUniformDist() <= 0.5) {
+                return -y;
+            } else {
+                return y;
+            }
         }
     }
     return 0.0;
