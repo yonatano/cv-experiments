@@ -11,7 +11,7 @@ STDFLAGS = "c++11"
 all: new
 
 build:
-	clang++ $(IMGMAGICKFLAGS) $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g $(IMGMAGICKARGS) && \
+	clang++ $(IMGMAGICKFLAGS) $(SRCDIR)/*.cpp -std=$(STDFLAGS) -o $(SAVEDIR)/$(NAME) -g $(IMGMAGICKARGS) -larmadillo && \
 		ln -s `pwd`/$(SAVEDIR)/$(NAME) ~/Code/bin/$(NAME)
 
 clean:
