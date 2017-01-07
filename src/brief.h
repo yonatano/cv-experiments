@@ -7,9 +7,13 @@
 #include "fast.h"
 #include "utils.h"
 
-
 using namespace std;
 using namespace arma;
+
+typedef bitset<64> brief64;
+typedef bitset<128> brief128;
+typedef bitset<256> brief256;
+typedef bitset<512> brief512;
 
 typedef struct patch {
     Point center;
@@ -62,8 +66,8 @@ typedef struct patch {
 
 } Patch;
 
-uint64_t generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
-uint64_t generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pairs, vector<Point>& pts);
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts);
 void sampleWithGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2);
 void sampleWithLocalizedGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2);
 

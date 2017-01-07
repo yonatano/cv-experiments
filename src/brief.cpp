@@ -41,8 +41,8 @@ void sampleWithLocalizedGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Po
     pt2 = p.clip( Point(x, y) );
 }
 
-uint64_t generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
-    uint64_t descriptor = 0;
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
+    brief512 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
@@ -55,27 +55,29 @@ uint64_t generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point
         pt1 = p.tolocal(pt1);
         pt2 = p.tolocal(pt2);
         bool test = (sub(pt1.y, pt1.x) < sub(pt2.y, pt2.x));
-        descriptor += test;
-        descriptor = (descriptor << 1);
+        descriptor |= test;
+        if (i != size - 1)
+            descriptor <<= 1;
     }
     return descriptor;
 }
 
-uint64_t generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pairs, vector<Point>& pts) {
-    uint64_t descriptor = 0;
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts) {
+    brief512 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
     smoothImageWithGaussian(sub);
-    for (int i = 0; i < size; i += 2) {
+    for (int i = 0; i < pairs.size(); i += 2) {
         pt1 = pairs[i];
         pt2 = pairs[i+1];
         pts.push_back( p.fromlocal(pt1) );
         pts.push_back( p.fromlocal(pt2) );
 
         bool test = (sub(pt1.y, pt1.x) < sub(pt2.y, pt2.x));
-        descriptor += test;
-        descriptor = (descriptor << 1);
+        descriptor |= test;
+        if (i != pairs.size() - 2)
+            descriptor <<= 1;
     }
     return descriptor;
 }

@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     image.strokeWidth(1);
 
     // load image into matrix 
-    Mat<int> img; 
+    Mat<int> img;
     img.load(testpgm, pgm_binary);
 
     // detect interest points
@@ -211,14 +211,14 @@ int main(int argc, char **argv) {
     int patchsz = 25;
     Patch p1(img, Point(50, 50), patchsz);
     Patch p2(img, Point(200, 200), patchsz);
-    Patch p3(img, Point(201, 200), patchsz);
+    Patch p3(img, Point(210, 210), patchsz);
     
     // use the same local coordinates for each descriptor
     int descsz = 512;
     Point pt1;
     Point pt2;
     vector<Point> pairs;
-    for (int i = 0; i < descsz; i++) {    
+    for (int i = 0; i < descsz; i++) {
         sampleWithGaussianStrategy(img, p1, pt1, pt2);
         pairs.push_back( p1.tolocal(pt1) );
         pairs.push_back( p1.tolocal(pt2) );
@@ -226,24 +226,27 @@ int main(int argc, char **argv) {
 
     vector<Point> descriptorPts;
     
-    uint64_t d1 = generateBRIEFDescriptor(img, p1, descsz, pairs, descriptorPts);
+    brief512 d1 = generateBRIEFDescriptor(img, p1, pairs, descriptorPts);
+    cout << d1 << endl;
     image.strokeColor("blue");
     drawPatch(image, p1, "1");
     drawKeypoints(image, descriptorPts, "red");
 
-    uint64_t d2 = generateBRIEFDescriptor(img, p2, descsz, pairs, descriptorPts);
+    brief512 d2 = generateBRIEFDescriptor(img, p2, pairs, descriptorPts);
+    cout << d2 << endl;
     image.strokeColor("blue");
     drawPatch(image, p2, "2");
     drawKeypoints(image, descriptorPts, "red");
 
-    uint64_t d3 = generateBRIEFDescriptor(img, p3, descsz, pairs, descriptorPts);
+    brief512 d3 = generateBRIEFDescriptor(img, p3, pairs, descriptorPts);
+    cout << d3 << endl;
     image.strokeColor("blue");
     drawPatch(image, p3, "3");
     drawKeypoints(image, descriptorPts, "red");
 
-    cout << "patch 1 & patch 2 dist: " << (d1^d2) << endl;
-    cout << "patch 1 & patch 3 dist: " << (d1^d3) << endl;
-    cout << "patch 2 & patch 3 dist: " << (d2^d3) << endl;
+    cout << "patch 1 & patch 2 dist: " << (d1^d2).count() << endl;
+    cout << "patch 1 & patch 3 dist: " << (d1^d3).count() << endl;
+    cout << "patch 2 & patch 3 dist: " << (d2^d3).count() << endl;
 
     image.write(testpng + ".keypoints.png");
 }
