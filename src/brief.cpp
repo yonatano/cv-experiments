@@ -13,7 +13,7 @@ using namespace arma;
 */
 
 // X, Y ~ Gaussian(0, 1/25 * S^2)
-void sampleWithGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2) {
+void sampleWithGaussianStrategy(Patch& p, Point& pt1, Point& pt2) {
     float var = 1 / 25.0 * pow(p.size() / 2.0, 2);
     int x, y;
     // sample point 1
@@ -27,7 +27,7 @@ void sampleWithGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2)
 }
 
 // X ~ Gaussian(0, 1/25 * S^2) Y ~ Gaussian(Xi, 1/100 * S^2)
-void sampleWithLocalizedGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2) {
+void sampleWithLocalizedGaussianStrategy(Patch& p, Point& pt1, Point& pt2) {
     float var1 = 1 / 25.0 * pow(p.size() / 2.0, 2);
     float var2 = 1 / 100.0 * pow(p.size() / 2.0, 2);
     int x, y;
@@ -41,14 +41,20 @@ void sampleWithLocalizedGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Po
     pt2 = p.clip( Point(x, y) );
 }
 
-brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
-    brief512 descriptor;
+void sampleWithUniformGridStrategy(Patch& p, int numPairs, vector<Point>& pts) {
+    int numPts = numPairs * 2;
+    int stepx = p.size() / pow(numPts, 0.5);
+
+}
+
+brief64 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
+    brief64 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
     smoothImageWithGaussian(sub);
     for (int i = 0; i < size; i++) {
-        sampleWithGaussianStrategy(img, p, pt1, pt2);
+        sampleWithGaussianStrategy(p, pt1, pt2);
         pts.push_back(pt1);
         pts.push_back(pt2);
 
@@ -62,8 +68,8 @@ brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point
     return descriptor;
 }
 
-brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts) {
-    brief512 descriptor;
+brief256 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts) {
+    brief256 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
@@ -71,8 +77,8 @@ brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, 
     for (int i = 0; i < pairs.size(); i += 2) {
         pt1 = pairs[i];
         pt2 = pairs[i+1];
-        pts.push_back( p.fromlocal(pt1) );
-        pts.push_back( p.fromlocal(pt2) );
+        pts.push_back(pt1);
+        pts.push_back(pt2);
 
         bool test = (sub(pt1.y, pt1.x) < sub(pt2.y, pt2.x));
         descriptor |= test;

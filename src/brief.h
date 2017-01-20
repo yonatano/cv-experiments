@@ -22,7 +22,17 @@ typedef struct patch {
     int endx;
     int endy;
 
-    patch(Mat<int> img, Point center, int sidelength) {
+    patch(Point tl, Point br) { // initialize with explicit coordinates
+        int cx = (tl.x + br.x) / 2;
+        int cy = (tl.y + br.y) / 2;
+        this->center = Point(cx, cy);
+        this->startx = tl.x;
+        this->starty = tl.y;
+        this->endx = br.x;
+        this->endy = br.y;
+    }
+
+    patch(Mat<int>& img, Point center, int sidelength) {
         int startx = center.x - sidelength / 2;
         int starty = center.y - sidelength / 2;
         int endx = center.x + sidelength / 2;
@@ -34,7 +44,7 @@ typedef struct patch {
         this->endy = max(0, min(int(img.n_rows), endy));
     }
 
-    Mat<int> sub(Mat<int> img) {
+    Mat<int> sub(Mat<int>& img) {
         return img.submat(this->starty, this->startx, this->endy, this->endx);
     }
 
@@ -66,9 +76,9 @@ typedef struct patch {
 
 } Patch;
 
-brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
-brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts);
-void sampleWithGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2);
-void sampleWithLocalizedGaussianStrategy(Mat<int>& img, Patch& p, Point& pt1, Point& pt2);
+brief64 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
+brief256 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts);
+void sampleWithGaussianStrategy(Patch& p, Point& pt1, Point& pt2);
+void sampleWithLocalizedGaussianStrategy(Patch& p, Point& pt1, Point& pt2);
 
 #endif
