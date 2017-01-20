@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print "%s: (%s pos %s neg)" % (f, len(pos), len(neg))
 
         for k, w in enumerate(pos):
-            im.crop(w).save(save_dir + "/pos/%s_%s.jpg" % (i, k))
+            im.crop(w).save(save_dir + "/pos/%s_%s.png" % (i, k))
 
         for k, w in enumerate(neg):
-            im.crop(w).save(save_dir + "/neg/%s_%s.jpg" % (i, k))
+            im.crop(w).save(save_dir + "/neg/%s_%s.png" % (i, k))

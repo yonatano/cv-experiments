@@ -15,5 +15,6 @@ using namespace std;
 using namespace arma;
 
 bool isKeypoint(Row<int>& X);
+int predictDescriptor(Row<int>& X);
 
 #endif

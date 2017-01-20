@@ -848,3 +848,7 @@ bool isKeypoint(Row<int>& X) {
      }
      return 0;
 }
+
+int predictDescriptor(Row<int>& X) {
+ return 0;
+}

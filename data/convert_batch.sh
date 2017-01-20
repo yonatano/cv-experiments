@@ -3,10 +3,9 @@
 # brew install imagemagick
 
 EXT=pgm
-SRC="tiny-imagenet-200/val/images"
-DEST="tiny_imagenet_$EXT"
-mkdir -p $DEST;
-for fl in $(find $SRC -name "*.JPEG")
+SRC=$1
+DEST=$2
+for fl in $(find $SRC -name "*.png")
 do
     fn=$(basename ${fl%.*})
     echo "converting $fn"

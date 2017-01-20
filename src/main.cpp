@@ -34,22 +34,22 @@ void drawPatch(Image& image, Patch p, string id) {
     image.draw( DrawableText(p.startx + 10, p.starty + 10, id) );
 }
 
-vector<string> loadImageNet(int num) {
-    vector<string> images;
-    const char* dir = "data/tiny_imagenet_pgm/";
-    DIR* dirData = opendir(dir);
+vector<string> listFiles(string dir, string ext) {
+    vector<string> files;
+    const char* cdir = dir.c_str();
+    DIR* dirData = opendir(cdir);
     struct dirent* f;
     while (( f = readdir( dirData )) != NULL ) {
-        if (num == 0)
-            break;
         string fname(f->d_name);
-        if (fname.find(".pgm") != string::npos) {
-            images.push_back(string(dir) + fname);
-            num--;
+        if (fname.find(ext) != string::npos) {
+            files.push_back(string(dir) + fname);
         }
     }
-    cout << "read " << images.size() << " images" << endl;
-    return images;
+    return files;
+}
+
+vector<string> loadImageNet() {
+    return listFiles("data/tiny_imagenet_pgm/", "pgm");
 }
 
 vector<Point> detectKeypointsForImage(Mat<int>& img, int skip) {
@@ -104,7 +104,7 @@ void computeKeypointTrainingDataForImage(Mat<int> img,
     }
 }
 
-void generateTrainingData(vector<string> imageFiles, string outName) {
+void generateCornerTrainingData(vector<string> imageFiles, string outName) {
     stringstream outData;
 
     for (int i = 0; i < DEFAULT_CIRCLESZ; i++) { // write csv header
@@ -138,15 +138,12 @@ void generateTrainingData(vector<string> imageFiles, string outName) {
     outFile.close();
 }
 
-int main(int argc, char **argv) {
-    InitializeMagick(*argv);
-
-    /*
-    // generate training data
+void trainCornerDetector() {
+     // generate training data
     cout << "loading ImageNet..." << endl;
-    vector<string> images = loadImageNet(100);
+    vector<string> images = loadImageNet();
     cout << "generating training data..." << endl;
-    generateTrainingData(images, "train.csv");
+    generateCornerTrainingData(images, "train.csv");
 
     cout << "loading training data..." << endl;
     map<string, vector<int> > data = loadCSVAsInt("train.csv");
@@ -178,75 +175,128 @@ int main(int argc, char **argv) {
     Col<int> Yp = tree.predict(Xtest);
     printConfusionMatrix(Ytest, Yp);
     cout << endl;
+}
 
-    // stringstream treeDump;
-    // tree.dumpConditionals(treeDump);
-    // ofstream treeFile;
-    // treeFile.open("tree-dump.txt");
-    // treeFile << treeDump.str();
-    // treeFile.close();
-    */
+int kNN(brief256& x, vector<brief256>& databaseX, vector<int>& databaseY, int k) {
+    // indices of databaseX sorted by distances to x
+    vector<size_t> dists(databaseX.size());
+    for (int i = 0; i < databaseX.size(); i++) {
+        dists[i] = (databaseX[i]^x).count();
+    }
+    vector<size_t> distidx(databaseX.size());
+    iota(distidx.begin(), distidx.end(), static_cast<size_t>(0));
+    sort(distidx.begin(), distidx.end(), [&](size_t a, size_t b) { 
+        return dists[a] < dists[b];
+    });
 
-    string selfdir = "/Users/yonatanoren/Code/c++/projects/computervision/orb/";
-    string testpng = selfdir+"data/test-imgs/apple-store.png";
-    string testpgm = selfdir+"data/test-imgs/apple-store.pgm";
+    vector<int> predictions;
+    for (int i = 0; i < k; i++) {
+        predictions.push_back( databaseY[distidx[i]] );
+        // cout << " " << distidx[i] << "/" << (databaseX[distidx[i]]^x).count() << "/" << databaseY[distidx[i]];
+    }
+    // cout << endl;
 
-    Image image;
-    image.read(testpng);
-    image.strokeWidth(1);
+    int streakVal = 0;
+    int streakLen = 0;
+    for (int i = 0; i < predictions.size(); i++) {
+        int n = count(predictions.begin(), predictions.end(), predictions[i]);
+        // cout << "count (" << predictions[i] << "): " << n << endl;
+        if (n > streakLen) {
+            streakVal = predictions[i];
+            streakLen = n;
+        }
+    }
+    // cout << " = " << streakVal << endl;
+    return streakVal;
+}
 
-    // load image into matrix 
+int main(int argc, char **argv) {
+    InitializeMagick(*argv);
+
+    string dir = "/Users/yonatanoren/Code/c++/projects/computervision/orb/";
+
+    /* Generate training data */
+    stringstream outstream;
+
+    // load each example and generate its BRIEF descriptor
+    vector<string> pos = listFiles(dir+"data/test-cars/pospgm/", "pgm");
+    vector<string> neg = listFiles(dir+"data/test-cars/negpgm/", "pgm");
+    cout << "loaded, POS: " << pos.size() << " NEG: " << neg.size() << endl;
+
     Mat<int> img;
-    img.load(testpgm, pgm_binary);
-
-    // detect interest points
-    int skip = 1;
-    vector<Point> keypoints = detectKeypointsForImage(img, skip);
-    cout << "detected " << keypoints.size() << " keypoints." << endl;
-
-    // draw interest points
-    drawKeypoints(image, keypoints, "green");
-
-    // generate a descriptor for a patch
+    vector<Point> pts;
+    
+    // initialize a sample patch for use with all descriptors
     int patchsz = 25;
-    Patch p1(img, Point(50, 50), patchsz);
-    Patch p2(img, Point(200, 200), patchsz);
-    Patch p3(img, Point(210, 210), patchsz);
+    Patch sample(Point(0, 0), Point(patchsz-1, patchsz-1));
     
     // use the same local coordinates for each descriptor
-    int descsz = 512;
+    int descsz = 64;
     Point pt1;
     Point pt2;
+    brief256 desc;
     vector<Point> pairs;
     for (int i = 0; i < descsz; i++) {
-        sampleWithGaussianStrategy(img, p1, pt1, pt2);
-        pairs.push_back( p1.tolocal(pt1) );
-        pairs.push_back( p1.tolocal(pt2) );
+        sampleWithGaussianStrategy(sample, pt1, pt2);
+        pairs.push_back( sample.tolocal(pt1) );
+        pairs.push_back( sample.tolocal(pt2) );
     }
 
-    vector<Point> descriptorPts;
+    // generate examples
+    vector<brief256> databaseX;
+    vector<int> databaseY;
+
+    cout << "generate positive descriptors" << endl;
+    for (int i = 0; i < pos.size(); i++) {
+        img.load(pos[i], pgm_binary);
+        desc = generateBRIEFDescriptor(img, sample, pairs, pts);
+        databaseX.push_back( desc );
+        databaseY.push_back( 1 );
+    }
+
+    cout << "generate negative descriptors" << endl;
+    for (int i = 0; i < neg.size(); i++) {
+        img.load(pos[i], pgm_binary);
+        desc = generateBRIEFDescriptor(img, sample, pairs, pts);
+        databaseX.push_back( desc );
+        databaseY.push_back( 0 );
+    }
+
+    // train-test split
+    vector<brief256> Xtrain;
+    vector<brief256> Xtest;
+    vector<int> Ytrain;
+    vector<int> Ytest;
+
+    vector<int> randidxs;
+    for (int i = 0; i < databaseX.size(); i++) { randidxs.push_back(i); }
+    random_shuffle(randidxs.begin(), randidxs.end());
+
+    int splitidx = databaseX.size() * 0.8;
+    for (int i = 0; i < splitidx; i++) {
+        Xtrain.push_back( databaseX[randidxs[i]] );
+        Ytrain.push_back( databaseY[randidxs[i]] );
+    }
+    for (int i = splitidx; i < databaseX.size(); i++) {
+        Xtest.push_back( databaseX[randidxs[i]] );
+        Ytest.push_back( databaseY[randidxs[i]] );
+    }
     
-    brief512 d1 = generateBRIEFDescriptor(img, p1, pairs, descriptorPts);
-    cout << d1 << endl;
-    image.strokeColor("blue");
-    drawPatch(image, p1, "1");
-    drawKeypoints(image, descriptorPts, "red");
+    // evaluate
+    int curr = 0;
+    Col<int> Y(Ytest);
+    Col<int> Yp(Ytest.size());
+    for (int i = 0; i < Xtest.size(); i++) {
+        int p = kNN(Xtest[i], Xtrain, Ytrain, 5);
+        Yp[i] = p;
+        curr++;
+        if (curr > 1000) {
+            curr = 0;
+            cout << "classified 1000" << endl;
+        }
+    }
+    cout << "confusion matrix:" << endl;
+    printConfusionMatrix(Ytest, Yp);
+    cout << endl;
 
-    brief512 d2 = generateBRIEFDescriptor(img, p2, pairs, descriptorPts);
-    cout << d2 << endl;
-    image.strokeColor("blue");
-    drawPatch(image, p2, "2");
-    drawKeypoints(image, descriptorPts, "red");
-
-    brief512 d3 = generateBRIEFDescriptor(img, p3, pairs, descriptorPts);
-    cout << d3 << endl;
-    image.strokeColor("blue");
-    drawPatch(image, p3, "3");
-    drawKeypoints(image, descriptorPts, "red");
-
-    cout << "patch 1 & patch 2 dist: " << (d1^d2).count() << endl;
-    cout << "patch 1 & patch 3 dist: " << (d1^d3).count() << endl;
-    cout << "patch 2 & patch 3 dist: " << (d2^d3).count() << endl;
-
-    image.write(testpng + ".keypoints.png");
 }
