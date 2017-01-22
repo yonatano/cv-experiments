@@ -177,7 +177,7 @@ void trainCornerDetector() {
     cout << endl;
 }
 
-int kNN(brief256& x, vector<brief256>& databaseX, vector<int>& databaseY, int k) {
+int kNN(brief64& x, vector<brief64>& databaseX, vector<int>& databaseY, int k) {
     // indices of databaseX sorted by distances to x
     vector<size_t> dists(databaseX.size());
     for (int i = 0; i < databaseX.size(); i++) {
@@ -210,6 +210,34 @@ int kNN(brief256& x, vector<brief256>& databaseX, vector<int>& databaseY, int k)
     return streakVal;
 }
 
+// y = argmax Pr[Ck] Π Pr[Xi | Ck]
+int naiveBayesPrediction(brief64& x, Cube<float>& ftrProbabilities, float classProbabilities[]) {
+    int label = 0;
+    float score = 0.0;
+    for (int k = 0; k < ftrProbabilities.n_slices; k++) {
+        float classScore = classProbabilities[k];
+        // iterate over the entries of x and compute a probability for class k
+        //cout << "class " << k << " pr: [0.5*";
+        for (int idx = 0; idx < x.size(); idx++) {
+            int bit = x[idx];
+            classScore *= ftrProbabilities(idx, bit, k); // Pr[Xidx = bit | Ck]
+            //cout << ftrProbabilities(idx, bit, k) << "*";
+        }
+        //cout << "] = " << classScore << endl;
+        if (classScore >= score) {
+            score = classScore;
+            label = k;
+        }
+    }
+    return label;
+}
+
+template<size_t asz, size_t bsz>
+void truncateBitset(bitset<asz>& a, bitset<bsz>& b) {
+    for (int idx = 0; idx < bsz; idx++)
+        b[idx] = a[idx];
+}
+
 int main(int argc, char **argv) {
     InitializeMagick(*argv);
 
@@ -223,48 +251,109 @@ int main(int argc, char **argv) {
     vector<string> neg = listFiles(dir+"data/test-cars/negpgm/", "pgm");
     cout << "loaded, POS: " << pos.size() << " NEG: " << neg.size() << endl;
 
-    Mat<int> img;
+    // points for display 
     vector<Point> pts;
-    
+
     // initialize a sample patch for use with all descriptors
-    int patchsz = 25;
-    Patch sample(Point(0, 0), Point(patchsz-1, patchsz-1));
+    Patch sample(Point(0, 0), Point(25 - 1, 25 - 1));
     
+    // Representation parameters
+    int DESCSZ = 64;
+    int LBPCSZ = 11; // circle rad 11 -> 64px
+    string DESCTYPE = "lbp"; // brief or lbp
+    string STRATEGY = "knn"; // knn or nb
+
+    /*
+    CIRCLE RADIUS -> NUMPX
+    RAD: 4 NUMPX: 24
+    RAD: 5 NUMPX: 32
+    RAD: 6 NUMPX: 32
+    RAD: 7 NUMPX: 40
+    RAD: 8 NUMPX: 48
+    RAD: 9 NUMPX: 48
+    RAD: 10 NUMPX: 56
+    RAD: 11 NUMPX: 64
+    RAD: 12 NUMPX: 72
+    RAD: 13 NUMPX: 72
+    RAD: 14 NUMPX: 80
+    RAD: 15 NUMPX: 88
+    RAD: 16 NUMPX: 88
+    */
+
+    cout << "PARAMS:" << endl << "descriptor=" << DESCTYPE << " (" << DESCSZ << ")" << endl << "strategy=" << STRATEGY << endl;
+
     // use the same local coordinates for each descriptor
-    int descsz = 64;
     Point pt1;
     Point pt2;
-    brief256 desc;
     vector<Point> pairs;
-    for (int i = 0; i < descsz; i++) {
+    for (int i = 0; i < DESCSZ; i++) {
         sampleWithGaussianStrategy(sample, pt1, pt2);
         pairs.push_back( sample.tolocal(pt1) );
         pairs.push_back( sample.tolocal(pt2) );
     }
 
     // generate examples
-    vector<brief256> databaseX;
+    vector<brief64> databaseX;
     vector<int> databaseY;
 
-    cout << "generate positive descriptors" << endl;
+    // positive
     for (int i = 0; i < pos.size(); i++) {
+        Mat<int> img;
         img.load(pos[i], pgm_binary);
-        desc = generateBRIEFDescriptor(img, sample, pairs, pts);
+        brief64 desc;
+        if (DESCTYPE == "brief") {
+            brief512 d = generateBRIEFDescriptor(img, sample, pairs, pts);
+            truncateBitset(d, desc);
+        }
+        if (DESCTYPE == "lbp") {
+            // generate a LBP pattern using a FAST circle 
+            smoothImageWithGaussian(img);
+            int cmag = img(sample.center.x, sample.center.y);
+            vector<Point> circle = computeCircle(sample.center.x, sample.center.y, LBPCSZ);
+            vector<int> relBrightness = relativeBrightnessForCircle(img,
+                                                                    cmag,
+                                                                    circle, 
+                                                                    DEFAULT_MAG_THRESHOLD);
+            for (int idx = 0; idx < desc.size(); idx++) {
+                desc[idx] = relBrightness[idx];
+            }
+        }
+        
         databaseX.push_back( desc );
         databaseY.push_back( 1 );
     }
 
-    cout << "generate negative descriptors" << endl;
+    // negative
     for (int i = 0; i < neg.size(); i++) {
-        img.load(pos[i], pgm_binary);
-        desc = generateBRIEFDescriptor(img, sample, pairs, pts);
+        Mat<int> img;
+        img.load(neg[i], pgm_binary);
+        brief64 desc;
+        if (DESCTYPE == "brief") {
+            brief512 d = generateBRIEFDescriptor(img, sample, pairs, pts);
+            truncateBitset(d, desc);
+        }
+        if (DESCTYPE == "lbp") {
+            // generate a LBP pattern using a FAST circle 
+            smoothImageWithGaussian(img);
+            int cmag = img(sample.center.x, sample.center.y);
+            vector<Point> circle = computeCircle(sample.center.x, sample.center.y, 10);
+            vector<int> relBrightness = relativeBrightnessForCircle(img,
+                                                                    cmag,
+                                                                    circle, 
+                                                                    DEFAULT_MAG_THRESHOLD);
+            for (int idx = 0; idx < desc.size(); idx++) {
+                desc[idx] = relBrightness[idx];
+            }
+        }
+            
+
         databaseX.push_back( desc );
         databaseY.push_back( 0 );
     }
 
     // train-test split
-    vector<brief256> Xtrain;
-    vector<brief256> Xtest;
+    vector<brief64> Xtrain;
+    vector<brief64> Xtest;
     vector<int> Ytrain;
     vector<int> Ytest;
 
@@ -281,22 +370,66 @@ int main(int argc, char **argv) {
         Xtest.push_back( databaseX[randidxs[i]] );
         Ytest.push_back( databaseY[randidxs[i]] );
     }
+    cout << "Train/Test: " << Xtrain.size() << "/" << Xtest.size() << endl;
+
+    /* Generate Parameters for Naive Bayes Classifier */
+
+    // For each bit in {0,1}^256, compute Pr[Xi=0,1 | Pos] and Pr[Xi=0,1 | Neg]
+    int numClasses = 2;
+    float classProbabilities[] = { pos.size() / float(pos.size() + neg.size()), neg.size() / float(pos.size() + neg.size())};
+    int numFtrs = DESCSZ;
+    int ftrsz = 2; // number of values a feature can take on 
     
-    // evaluate
-    int curr = 0;
+    // for each class Ck, we generate a numFtrs x ftrVals sized matrix
+    // entry i,j contains an integer indicating the number of observed samples
+    // in class Ck of feature i having value j
+    Cube<int> classFtrCounts(numFtrs, ftrsz, numClasses, fill::zeros);
+    Cube<float> classFtrProbabilities(numFtrs, ftrsz, numClasses, fill::zeros);
+    for (int i = 0; i < Xtrain.size(); i++) {
+        brief64 x = Xtrain[i];
+        int y = Ytrain[i];
+        for (int idx = 0; idx < x.size(); idx++) {
+            int bitatidx = x[idx];
+            classFtrCounts(idx, bitatidx, y) += 1;
+        }
+    }
+
+    // The probability of feature i taking on value j given class k is:
+    // with M = classFtrMatrices[k]
+    // M[i, j] / sum(M[i, :])
+    for (int k = 0; k < numClasses; k++) {
+        Mat<int> m = classFtrCounts.slice(k);
+        Col<int> ftrTotals = sum(m, 1);
+        for (int i = 0; i < numFtrs; i++) {
+            for (int j = 0; j < ftrsz; j++) {
+                classFtrProbabilities(i, j, k) = m(i, j) / float(ftrTotals[i]);
+            }
+        }
+    }
+    
+    /* Evaluate */
+    int progress = 0;
+    int totalprogress = 0;
     Col<int> Y(Ytest);
     Col<int> Yp(Ytest.size());
     for (int i = 0; i < Xtest.size(); i++) {
-        int p = kNN(Xtest[i], Xtrain, Ytrain, 5);
-        Yp[i] = p;
-        curr++;
-        if (curr > 1000) {
-            curr = 0;
-            cout << "classified 1000" << endl;
+        if (STRATEGY == "knn") {
+            Yp[i] = kNN(Xtest[i], Xtrain, Ytrain, 5);
         }
+        if (STRATEGY == "nb") {
+            Yp[i] = naiveBayesPrediction(Xtest[i], classFtrProbabilities, classProbabilities);    
+        }
+
+        if (progress == 1000){
+            progress = 0;
+            cout << "classified (" << totalprogress << "/" << Ytest.size() << ")" << endl; 
+        }
+        progress++;
+        totalprogress++;
     }
+    cout << "Accuracy: " << computeAccuracy(Ytest, Yp) << endl;
+    cout << "F1-Score: " << computeF1Score(Ytest, Yp) << endl;
     cout << "confusion matrix:" << endl;
     printConfusionMatrix(Ytest, Yp);
     cout << endl;
-
 }
