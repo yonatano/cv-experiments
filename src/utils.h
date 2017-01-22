@@ -19,6 +19,8 @@ map<string, vector<int> > loadCSVAsInt(string fileName);
 map<string, vector<int> > labelEncodeData(map<string, vector<string> > dat);
 void dataToMatrix(map<string, vector<int> > dat, string y, Mat<int>& X, Col<int>& Y);
 void printConfusionMatrix(Col<int> Y, Col<int> Yp);
+float computeF1Score(Col<int> Y, Col<int> Yp);
+float computeAccuracy(Col<int> Y, Col<int> Yp);
 bool isInBounds(int w, int h, int x, int y);
 void smoothImageWithGaussian(Mat<int>& img);
 

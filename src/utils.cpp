@@ -113,6 +113,40 @@ void printConfusionMatrix(Col<int> Y, Col<int> Yp) {
     conf.print();
 }
 
+// p is the number of correct positive results divided by the number of all positive results
+// r is the number of correct positive results divided by the number of positive results that should have been returned
+// F1 = 2 * (p * r) / (p + r)
+float computeF1Score(Col<int> Y, Col<int> Yp) {
+    int corrpos;
+    int allpos;
+    int truepos;
+    for (int i = 0; i < Y.n_rows; i++) {
+        int tr = Y[i];
+        int pr = Yp[i];
+        if (pr == 1)
+            allpos++;
+        if (tr == 1)
+            truepos++;
+        if (pr == 1 && tr == 1)
+            corrpos++;
+    }
+    float p = corrpos / float(allpos);
+    float r = corrpos / float(truepos);
+    return 2 * (p * r) / (p + r);
+}
+
+float computeAccuracy(Col<int> Y, Col<int> Yp) {
+    int corr;
+    for (int i = 0; i < Y.n_rows; i++) {
+        int tr = Y[i];
+        int pr = Yp[i];
+        if (tr == pr) {
+            corr++;
+        }
+    }
+    return corr / float(Y.n_rows);
+}
+
 bool isInBounds(int w, int h, int x, int y) {
     return (0 <= x < w) && (0 <= y < h);
 }
