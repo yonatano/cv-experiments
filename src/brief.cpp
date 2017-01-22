@@ -47,8 +47,8 @@ void sampleWithUniformGridStrategy(Patch& p, int numPairs, vector<Point>& pts) {
 
 }
 
-brief64 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
-    brief64 descriptor;
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts) {
+    brief512 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
@@ -68,8 +68,8 @@ brief64 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>
     return descriptor;
 }
 
-brief256 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts) {
-    brief256 descriptor;
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts) {
+    brief512 descriptor;
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);

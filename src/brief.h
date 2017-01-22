@@ -76,8 +76,8 @@ typedef struct patch {
 
 } Patch;
 
-brief64 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
-brief256 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts);
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point>& pts);
+brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, vector<Point>& pts);
 void sampleWithGaussianStrategy(Patch& p, Point& pt1, Point& pt2);
 void sampleWithLocalizedGaussianStrategy(Patch& p, Point& pt1, Point& pt2);
 
