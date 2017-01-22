@@ -57,6 +57,12 @@ vector<point> computeCircle(int cx, int cy, int r) {
         }
     }
 
+    // translate points by cx, cy
+    for (int i = 0; i < circle.size(); i++) {
+        circle[i].x += cx;
+        circle[i].y += cy;
+    }
+
     return circle;
 }
 
@@ -102,7 +108,7 @@ vector<int> relativeBrightnessForCircle(Mat<int>& img, int cmag, vector<Point> c
     }
     return relBrightness;
 }
-// computeSegmentTestCriterion() 
+
 // returns a bool indicating whether or not pixel at x,y of img 
 // is a corner by checking if there exist N contiguous pixels in a circle of R 
 // that are all brighter or darker by some threshold T,
