@@ -38,10 +38,10 @@ typedef struct patch {
         int endx = center.x + sidelength / 2;
         int endy = center.y + sidelength / 2;
         this->center = center;
-        this->startx = max(0, min(int(img.n_cols), startx));
-        this->starty = max(0, min(int(img.n_rows), starty));
-        this->endx = max(0, min(int(img.n_cols), endx));
-        this->endy = max(0, min(int(img.n_rows), endy));
+        this->startx = max(0, min(int(img.n_cols - 1), startx));
+        this->starty = max(0, min(int(img.n_rows - 1), starty));
+        this->endx = max(0, min(int(img.n_cols - 1), endx));
+        this->endy = max(0, min(int(img.n_rows - 1), endy));
     }
 
     Mat<int> sub(Mat<int>& img) {
@@ -62,6 +62,10 @@ typedef struct patch {
         return Point(clx, cly);
     }
 
+    bool inBounds(Point p) {
+        return clip(p) == p;
+    }
+
     Point fromlocal(Point p) {
         int lx = p.x + this->startx;
         int ly = p.y + this->starty;
@@ -72,6 +76,11 @@ typedef struct patch {
         int lx = p.x - this->startx;
         int ly = p.y - this->starty;
         return Point(lx, ly);
+    }
+
+    friend ostream &operator<<( ostream &output, const patch p) {
+        output << "Patch[center:" << p.center << " X:" << p.startx << "->" << p.endx << " Y:" << p.starty << "->" << p.endy << "]";
+        return output;
     }
 
 } Patch;

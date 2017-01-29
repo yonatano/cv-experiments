@@ -52,7 +52,7 @@ brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, int size, vector<Point
     Point pt1;
     Point pt2;
     Mat<int> sub = p.sub(img);
-    smoothImageWithGaussian(sub);
+    // smoothImageWithGaussian(sub);
     for (int i = 0; i < size; i++) {
         sampleWithGaussianStrategy(p, pt1, pt2);
         pts.push_back(pt1);
@@ -72,15 +72,15 @@ brief512 generateBRIEFDescriptor(Mat<int>& img, Patch& p, vector<Point>& pairs, 
     brief512 descriptor;
     Point pt1;
     Point pt2;
-    Mat<int> sub = p.sub(img);
-    smoothImageWithGaussian(sub);
+    // Mat<int> sub = p.sub(img);
+    // smoothImageWithGaussian(sub);
     for (int i = 0; i < pairs.size(); i += 2) {
-        pt1 = pairs[i];
-        pt2 = pairs[i+1];
-        pts.push_back(pt1);
-        pts.push_back(pt2);
+        pt1 = p.fromlocal(pairs[i]);
+        pt2 = p.fromlocal(pairs[i+1]);
+        pts.push_back( pt1 );
+        pts.push_back( pt2 );
 
-        bool test = (sub(pt1.y, pt1.x) < sub(pt2.y, pt2.x));
+        bool test = (img(pt1.y, pt1.x) < img(pt2.y, pt2.x));
         descriptor |= test;
         if (i != pairs.size() - 2)
             descriptor <<= 1;
