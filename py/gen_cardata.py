@@ -4,27 +4,28 @@ Load images from CarBlur dataset
 import os
 import sys
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 def isoverlapping(startx1, starty1, endx1, endy1, 
                   startx2, starty2, endx2, endy2):
-    xszone = abs(endx1 - startx1)
-    yszone = abs(endy1 - starty1)
-    xsztwo = abs(endx2 - startx2)
-    ysztwo = abs(endy2 - starty2)
-    condv = abs(endy2 - endy1) < ysztwo or abs(endy1 - endy2) < yszone
-    condh = abs(endx2 - endx1) < xsztwo or abs(endx1 - endx2) < xszone
-    return condv or condh
+    cond1 = startx1 > endx2
+    cond2 = endx1 < startx2
+    cond3 = starty1 > endy2
+    cond4 = endy1 < starty2
+    return not (cond1 or cond2 or cond3 or cond4)
 
 # pass a window over the bounding box, skipping by step pixels 
 # with each iteration.
 def compute_subwindows(im, patchsz, step, startx, starty, endx, endy):
+    currx = startx 
+    curry = starty 
     subwindows = []
-    while startx < (endx - patchsz):
-        while starty < (endy - patchsz):
-            subwindows.append( (startx, starty, startx + patchsz, starty + patchsz) )
-            starty += step
-        startx += step 
+    while currx <= (endx - patchsz + step):
+        while curry <= (endy - patchsz + step):
+            subwindows.append( (currx, curry, currx + patchsz, curry + patchsz) )
+            curry += step
+        curry = starty
+        currx += step
     return subwindows
 
 # randomly sample a number of windows not overlapping with the bounding box
@@ -47,7 +48,7 @@ if __name__ == "__main__":
 
     ground = data_dir + "/groundtruth_rect.txt"
     images = data_dir + "/img/"
-    step = 1
+    step = 5
 
     coords = [] # (x, y, width, height)
     with open(ground) as ground_truth:
@@ -59,13 +60,25 @@ if __name__ == "__main__":
     for i, f in enumerate(os.listdir(images)):
         c = coords[i]
         im = Image.open(images+f)
+        iw, ih = im.size
+        draw = ImageDraw.Draw(im) 
         pos = compute_subwindows(im, patchsz, step, c[0], c[1], c[2], c[3])
-        neg = compute_randwindows(im, patchsz, len(pos), c[0], c[1], c[2], c[3])
+        # neg = compute_randwindows(im, patchsz, len(pos), c[0], c[1], c[2], c[3])
+        neg = compute_subwindows(im, patchsz, step, 0, 0, iw, ih)
+        neg = [p for p in neg if not isoverlapping(p[0], p[1], p[2], p[3], 
+                                                   c[0], c[1], c[2], c[3])]
 
         print "%s: (%s pos %s neg)" % (f, len(pos), len(neg))
 
         for k, w in enumerate(pos):
             im.crop(w).save(save_dir + "/pos/%s_%s.png" % (i, k))
+            draw.rectangle([(w[0], w[1]), (w[2], w[3])], outline="red", fill=None)
 
         for k, w in enumerate(neg):
             im.crop(w).save(save_dir + "/neg/%s_%s.png" % (i, k))
+            draw.rectangle([(w[0], w[1]), (w[2], w[3])], outline="blue", fill=None)
+
+        im.show()
+        break
+
+    
