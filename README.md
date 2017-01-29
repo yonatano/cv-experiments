@@ -1,4 +1,4 @@
-# orb-descriptor
+# cv-experiments
 various computer vision algorithms implemented in C++
 
 Contains implementations of:
