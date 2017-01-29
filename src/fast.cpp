@@ -83,7 +83,7 @@ vector<Point> computeCircleOfSize(int cx, int cy, int numPx) {
     return circle;
 }
 
-
+// XXX: shouldn't be pass-by-value if mutating (unless implicit copy desired)
 vector<Point> shiftPointCenter(vector<Point> points, int cx, int cy) {
     for (int i = 0; i < points.size(); i++) {
         points[i].x += cx;
@@ -100,6 +100,7 @@ int relativeBrightness(int center, int relative, float thresh) {
     return REL_EQUAL;
 }
 
+// XXX: make circle pass-by-reference
 vector<int> relativeBrightnessForCircle(Mat<int>& img, int cmag, vector<Point> circle, float thresh) {
     vector<int> relBrightness;
     for (int i = 0; i < circle.size(); i++) {

@@ -53,7 +53,7 @@ vector<Point> computeCircle(int cx, int cy, int r);
 vector<Point> computeCircleOfSize(int cx, int cy, int numPx);
 vector<Point> shiftPointCenter(vector<Point> points, int cx, int cy);
 int relativeBrightness(int center, int relative, float thresh);
-vector<int> relativeBrightnessForCircle(Mat<int>& img, int cmag, vector<Point> circle, float thresh);
+vector<int> relativeBrightnessForCircle(Mat<int>& img, int cmag, vector<Point> circle, float thresh); // XXX: make pass-by-reference
 bool isCornerWithSegmentTestCriterion(Mat<int>& img, int cx, int cy, int n, int csz, float thresh);
 bool isCornerWithSegmentTestCriterion(Mat<int>& img, int cx, int cy, vector<Point> circle, int n, float thresh);
 
