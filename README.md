@@ -12,3 +12,5 @@ BRIEF descriptors / LBPs: http://www.robots.ox.ac.uk/~vgg/rg/papers/CalonderLSF1
 kNN & Naive Bayes for classification on descriptors / LBPs
 
 AdaBoost & boosting w/ LBPs (as in Viola-Jones)
+
+some fun probability stuff / acceptance-rejection method for sampling a Gaussian dist.
